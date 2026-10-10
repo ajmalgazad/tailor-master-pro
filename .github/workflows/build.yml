@@ -1,0 +1,72 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Run unit tests and build signed APK
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace testDebugUnitTest assembleRelease 2>&1 | tee build.log
+
+      - name: Collect test report summary
+        if: always()
+        run: |
+          mkdir -p ci
+          cp build.log ci/build.log || true
+          grep -E "^e: |error:|FAILED|BUILD (SUCCESSFUL|FAILED)|What went wrong" -A3 build.log > ci/errors.txt || true
+          find app/build/test-results -name "*.xml" -exec cat {} + > ci/tests.xml 2>/dev/null || true
+          find app/schemas -name "*.json" -exec cp {} ci/ \; 2>/dev/null || true
+
+      - name: Publish build log to ci-log branch
+        if: always()
+        run: |
+          cd ci
+          git init -q
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          echo "run ${{ github.run_number }} sha ${{ github.sha }} status ${{ job.status }}" > STATUS.txt
+          git add -A
+          git commit -q -m "CI log run ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ci-log
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk TailorMasterPro.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TailorMasterPro-apk
+          path: TailorMasterPro.apk
+
+      - name: Create GitHub release with APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v1.0.${{ github.run_number }}"
+          gh release create "$TAG" TailorMasterPro.apk \
+            --title "Tailor Master Pro $TAG" \
+            --notes "ٹیلر ماسٹر پرو — نیا ورژن۔ فون پر TailorMasterPro.apk ڈاؤن لوڈ کر کے انسٹال کریں۔ پرانا ڈیٹا محفوظ رہے گا۔" \
+            --latest
