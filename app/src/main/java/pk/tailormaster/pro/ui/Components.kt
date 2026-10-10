@@ -211,7 +211,7 @@ fun Input(
     OutlinedTextField(
         value = value, onValueChange = onChange, label = { Text(label) }, modifier = modifier,
         keyboardOptions = KeyboardOptions(keyboardType = keyboard), singleLine = singleLine, enabled = enabled,
-        isError = error != null, supportingText = error?.let { { Text(it) } }, minLines = minLines,
+        isError = error != null, supportingText = if (error != null) { { Text(error) } } else null, minLines = minLines,
         textStyle = MaterialTheme.typography.bodyLarge,
     )
 }

@@ -74,12 +74,12 @@ fun BookingScreen(s: Screen.Booking) {
     var addItem by remember { mutableStateOf(false) }
     var addCharge by remember { mutableStateOf(false) }
 
-    val customer by load(d.customerId) { if (d.customerId == 0L) null else customer(d.customerId) }
+    val customerRec by load(d.customerId) { if (d.customerId == 0L) null else customer(d.customerId) }
     val memberList by load(d.customerId) { if (d.customerId == 0L) emptyList() else members(d.customerId).filter { it.active } }
     val garmentList by load { garments().filter { it.active } }
     val profileList by load(d.customerId) { if (d.customerId == 0L) emptyList() else profilesForCustomer(d.customerId).filter { !it.archived } }
     val serviceList by load { services().filter { it.active } }
-    val balance by load(d.customerId) { if (d.customerId == 0L) 0L else balance(d.customerId) }
+    val prevBalance by load(d.customerId) { if (d.customerId == 0L) 0L else balance(d.customerId) }
 
     // Default member = the customer himself
     LaunchedEffect(memberList) {
@@ -110,16 +110,16 @@ fun BookingScreen(s: Screen.Booking) {
         FormColumn(pad) {
             // ---------- Customer & member
             SectionCard("کسٹمر") {
-                if (customer == null) {
+                if (customerRec == null) {
                     BigButton("کسٹمر منتخب کریں") { pickCustomer = true }
                     SmallButton("+ نیا کسٹمر رجسٹر کریں", Modifier.fillMaxWidth()) { nav.go(Screen.CustomerEdit()) }
                 } else {
-                    val c = customer!!
+                    val c = customerRec!!
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(c.name, style = MaterialTheme.typography.titleMedium)
                             Text(Fmt.customerCode(c.id) + " • " + Fmt.d(c.mobile), style = MaterialTheme.typography.bodySmall)
-                            if ((balance ?: 0) != 0L) Text("پچھلا بقایا: " + Fmt.money(balance ?: 0), color = Semantic.bad, style = MaterialTheme.typography.bodySmall)
+                            if ((prevBalance ?: 0) != 0L) Text("پچھلا بقایا: " + Fmt.money(prevBalance ?: 0), color = Semantic.bad, style = MaterialTheme.typography.bodySmall)
                         }
                         if (!editing) TextButton(onClick = { pickCustomer = true }) { Text("تبدیل") }
                     }
@@ -161,7 +161,7 @@ fun BookingScreen(s: Screen.Booking) {
                         onNewProfile = { nav.go(Screen.ProfileEdit(d.customerId, it.memberId, it.garmentId, returnAfterSave = true)) },
                     )
                 }
-                BigButton("+ کپڑا شامل کریں", enabled = customer != null) { addItem = true }
+                BigButton("+ کپڑا شامل کریں", enabled = customerRec != null) { addItem = true }
             }
             // ---------- Charges & discount
             SectionCard("اضافی چارجز اور رعایت") {

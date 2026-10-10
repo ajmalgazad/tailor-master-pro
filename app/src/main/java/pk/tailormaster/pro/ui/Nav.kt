@@ -60,3 +60,6 @@ class Navigator {
 }
 
 val LocalNav = staticCompositionLocalOf<Navigator> { error("no nav") }
+
+/** Lets automated tests drive navigation. */
+object NavHolder { @Volatile var nav: Navigator? = null }

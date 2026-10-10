@@ -54,13 +54,13 @@ fun MemberPickerFlow(onDismiss: () -> Unit, onPicked: (Customer, FamilyMember) -
     if (c == null) {
         CustomerPicker(onDismiss = onDismiss) { customer = it }
     } else {
-        val members by load(c.id) { members(c.id).filter { it.active } }
+        val memberList by load(c.id) { members(c.id).filter { it.active } }
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("فرد منتخب کریں — " + c.name) },
             text = {
                 LazyColumn {
-                    items(members ?: emptyList(), key = { it.id }) { m ->
+                    items(memberList ?: emptyList(), key = { it.id }) { m ->
                         Text(m.name + " — " + m.relation, style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.fillMaxWidth().clickable { onPicked(c, m) }.padding(vertical = 12.dp))
                         HorizontalDivider()
@@ -225,8 +225,8 @@ fun ProfileViewScreen(id: Long) {
     val repo = LocalRepo.current
     val scope = rememberCoroutineScope()
     val p by load(id) { profile(id) }
-    val member by load(p?.memberId) { p?.let { member(it.memberId) } }
-    val garment by load(p?.garmentId) { p?.let { garment(it.garmentId) } }
+    val memberRec by load(p?.memberId) { p?.let { member(it.memberId) } }
+    val garmentRec by load(p?.garmentId) { p?.let { garment(it.garmentId) } }
     val history by load(p) { p?.let { profileHistory(it) } ?: emptyList() }
     var dup by remember { mutableStateOf(false) }
     var dupMemberPick by remember { mutableStateOf(false) }
@@ -243,8 +243,8 @@ fun ProfileViewScreen(id: Long) {
                     if (pr.archived) Chip("پرانا ورژن", Semantic.warn)
                 }
                 KV("پروفائل نمبر", Fmt.profileCode(pr.id))
-                KV("فرد", member?.let { it.name + " — " + it.relation } ?: "-")
-                KV("کپڑا", garment?.name ?: "-")
+                KV("فرد", memberRec?.let { it.name + " — " + it.relation } ?: "-")
+                KV("کپڑا", garmentRec?.name ?: "-")
                 KV("تاریخ", Fmt.date(pr.date))
                 KV("اکائی", pr.unit)
                 KV("آخری استعمال", pr.lastUsed?.let { Fmt.date(it) } ?: "ابھی استعمال نہیں ہوا")

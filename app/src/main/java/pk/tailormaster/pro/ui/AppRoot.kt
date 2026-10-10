@@ -35,6 +35,7 @@ fun AppRoot(repo: Repository, printer: PrinterManager) {
     val settings by repo.settings.state.collectAsState()
     Fmt.settings = settings
     val nav = remember { Navigator() }
+    NavHolder.nav = nav
     var unlocked by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { repo.seedIfNeeded() }

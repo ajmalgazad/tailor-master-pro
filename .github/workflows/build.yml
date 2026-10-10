@@ -70,3 +70,55 @@ jobs:
             --title "Tailor Master Pro $TAG" \
             --notes "ٹیلر ماسٹر پرو — نیا ورژن۔ فون پر TailorMasterPro.apk ڈاؤن لوڈ کر کے انسٹال کریں۔ پرانا ڈیٹا محفوظ رہے گا۔" \
             --latest
+
+  device-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build app and instrumented tests
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest
+
+      - name: Run tests on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash .github/device-test.sh
+
+      - name: Publish device results to ci-device branch
+        if: always()
+        run: |
+          mkdir -p device-out
+          cd device-out
+          git init -q
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          echo "run ${{ github.run_number }} sha ${{ github.sha }}" > STATUS.txt
+          git add -A
+          git commit -q -m "Device test results run ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ci-device
+
+      - name: Fail if any device test failed
+        run: |
+          grep -q "FAILURES!!!\|Process crashed\|INSTRUMENTATION_FAILED" device-out/instrument.txt && exit 1
+          grep -q "^OK (" device-out/instrument.txt

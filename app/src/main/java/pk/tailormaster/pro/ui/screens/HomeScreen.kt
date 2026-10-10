@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -43,7 +44,7 @@ fun HomeScreen() {
     val repo = LocalRepo.current
     var day by remember { mutableLongStateOf(Dates.today()) }
     val dash by load(day) { dashboard(day) }
-    val s = repo.settings.value
+    val s by repo.settings.state.collectAsState()
 
     val menu = listOf(
         MenuItem(1, "ڈیش بورڈ", Color(0xFF0F4C5C)) { Screen.Home },
