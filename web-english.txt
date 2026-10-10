@@ -1,0 +1,6 @@
+direction ltr
+LEFTOVER 2
+login	اردو
+side13_Backup_and_settings	Language / زبان
+ERRORS
+step: locator.click: Timeout 5000ms exceeded.
