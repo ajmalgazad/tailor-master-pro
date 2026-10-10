@@ -14,10 +14,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -65,6 +66,7 @@ fun SettingsScreen() {
     )
     Page("بیک اپ اور سیٹنگز") { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { LanguageCard() }
             items(entries) { e ->
                 Card(Modifier.fillMaxWidth().clickable { e.go() }) {
                     Column(Modifier.padding(14.dp)) {
@@ -251,6 +253,29 @@ fun AuditLogScreen() {
                 }
             }
             if (logs != null && logs!!.isEmpty()) item { Empty("کوئی ریکارڈ نہیں") }
+        }
+    }
+}
+
+/** Language switch: Urdu (right-to-left) or English (left-to-right). Only changes this device. */
+@Composable
+fun LanguageCard() {
+    val repo = LocalRepo.current
+    val settings by repo.settings.state.collectAsState()
+    fun pick(code: String) {
+        repo.settings.update { it.copy(language = code) }
+        pk.tailormaster.pro.i18n.I18n.setLanguage(code)
+    }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Language / زبان", style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val ur = settings.language != "en"
+                if (ur) Button(onClick = { pick("ur") }, Modifier.weight(1f)) { Text("اردو") }
+                else OutlinedButton(onClick = { pick("ur") }, Modifier.weight(1f)) { Text("اردو") }
+                if (!ur) Button(onClick = { pick("en") }, Modifier.weight(1f)) { Text("English") }
+                else OutlinedButton(onClick = { pick("en") }, Modifier.weight(1f)) { Text("English") }
+            }
         }
     }
 }

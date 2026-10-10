@@ -51,6 +51,10 @@ android {
     buildFeatures {
         compose = true
     }
+    sourceSets {
+        // English dictionary shared with the web version (i18n/en.json -> assets/en.json)
+        getByName("main").assets.srcDirs("src/main/assets", "../i18n")
+    }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }

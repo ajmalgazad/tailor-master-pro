@@ -130,6 +130,10 @@ jobs:
       - name: Web shows the payment made on the phone
         run: node web/tests/cloud.mjs verify web-creds.json 2>&1 | tee device-out/web-verify.txt
 
+      - name: Web in English (every screen, leftover Urdu listed)
+        continue-on-error: true
+        run: node web/tests/english.mjs device-out 2>&1 | tee device-out/web-english.txt
+
       - name: Publish device results to ci-device branch
         if: always()
         run: |
@@ -162,6 +166,12 @@ jobs:
 
       - name: Build web app
         run: cd web && npm ci && npm run build
+
+      - name: Check every Urdu text has an English translation
+        run: |
+          python3 tools/i18n/extract_kt.py app/src/main/java /tmp/kt.json
+          node tools/i18n/extract_ts.cjs web/src /tmp/ts.json $PWD/web/node_modules/typescript
+          python3 tools/i18n/check.py /tmp/kt.json /tmp/ts.json i18n/en.json
 
       - name: Publish website + web app to gh-pages
         run: |

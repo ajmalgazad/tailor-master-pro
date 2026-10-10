@@ -22,6 +22,8 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.8; direction: rtl; }
+body.lang-en { direction: ltr; line-height: 1.55; }
+.lang-btns { display: flex; gap: 6px; }
 button, input, select, textarea { font: inherit; color: inherit; }
 h1, h2 { margin: 0; text-wrap: balance; }
 p { margin: .25rem 0; }
@@ -36,7 +38,7 @@ b.ok, b.bad { font-variant-numeric: tabular-nums; }
 @media (min-width: 980px) {
   .side { display: flex; flex-direction: column; gap: 2px; width: 220px; flex: none; background: var(--teal); color: var(--teal-ink); padding: 14px 10px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
   .side .brand { font-family: var(--display); font-size: 1.25rem; line-height: 2.4; padding: 0 8px 8px; border-bottom: 2px solid var(--gold); margin-bottom: 8px; }
-  .side button { text-align: right; background: none; border: 0; color: inherit; padding: 7px 10px; border-radius: 8px; cursor: pointer; opacity: .9; }
+  .side button { text-align: start; background: none; border: 0; color: inherit; padding: 7px 10px; border-radius: 8px; cursor: pointer; opacity: .9; }
   .side button:hover { background: rgba(255,255,255,.08); }
   .side button.on { background: var(--gold); color: #2b1d00; opacity: 1; font-weight: 700; }
 }
@@ -66,7 +68,7 @@ b.ok, b.bad { font-variant-numeric: tabular-nums; }
 
 .kv { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .kv span { color: var(--muted); }
-.kv b { font-weight: 600; text-align: left; font-variant-numeric: tabular-nums; }
+.kv b { font-weight: 600; text-align: end; font-variant-numeric: tabular-nums; }
 .kv b.strong { font-weight: 700; font-size: 1.08rem; }
 
 /* controls */
@@ -105,12 +107,12 @@ b.ok, b.bad { font-variant-numeric: tabular-nums; }
 
 /* lists */
 .list { display: flex; flex-direction: column; gap: 8px; }
-.list-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; width: 100%; text-align: right; background: var(--paper);
+.list-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; width: 100%; text-align: start; background: var(--paper);
   border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; }
 .list-row.static { cursor: default; }
 .list-row:hover:not(.static):not(:disabled) { border-color: var(--teal); }
 .list-row > div:first-child, .list-row .link-area { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.list-row .link-area { background: none; border: 0; text-align: right; cursor: pointer; padding: 0; }
+.list-row .link-area { background: none; border: 0; text-align: start; cursor: pointer; padding: 0; }
 .list-row small { color: var(--muted); font-size: .86rem; }
 .list-row .end { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
 .list-row .end.row { flex-direction: row; }
@@ -120,7 +122,7 @@ b.ok, b.bad { font-variant-numeric: tabular-nums; }
 
 /* dashboard */
 .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
-.stat { display: flex; flex-direction: column; gap: 2px; text-align: right; border: 0; border-radius: 14px; padding: 10px 12px; cursor: pointer; background: var(--paper); border-inline-start: 5px solid var(--c); }
+.stat { display: flex; flex-direction: column; gap: 2px; text-align: start; border: 0; border-radius: 14px; padding: 10px 12px; cursor: pointer; background: var(--paper); border-inline-start: 5px solid var(--c); }
 .stat:disabled { cursor: default; }
 .stat span { font-size: .85rem; color: var(--muted); }
 .stat b { font-size: 1.35rem; color: var(--c); font-variant-numeric: tabular-nums; }
@@ -144,7 +146,7 @@ b.ok, b.bad { font-variant-numeric: tabular-nums; }
 /* tables */
 .table-wrap { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
 .table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-.table th, .table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.table th, .table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: start; white-space: nowrap; }
 .table td:nth-child(2) { white-space: normal; min-width: 180px; }
 .table th { background: var(--teal-soft); position: sticky; top: 0; }
 .table tfoot td { font-weight: 700; background: var(--gold-soft); }
@@ -158,7 +160,7 @@ b.ok, b.bad { font-variant-numeric: tabular-nums; }
 .modal-body { padding: 8px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-start; flex-wrap: wrap; padding: 10px 16px 14px; border-top: 1px solid var(--line); }
 .pick-list { display: flex; flex-direction: column; max-height: 50vh; overflow-y: auto; }
-.pick { text-align: right; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 4px; cursor: pointer; display: flex; flex-direction: column; }
+.pick { text-align: start; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 4px; cursor: pointer; display: flex; flex-direction: column; }
 .pick:hover { background: var(--teal-soft); }
 .pick small { color: var(--muted); }
 .toast { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 60; color: #fff; padding: 12px 18px; border-radius: 12px;
@@ -175,3 +177,8 @@ b.ok, b.bad { font-variant-numeric: tabular-nums; }
 .login h1 { font-family: var(--display); color: var(--heading); font-size: 1.6rem; line-height: 2.3; }
 @media (max-width: 480px) { .login { margin: 0; border-radius: 0; min-height: 100vh; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.side .lang-btns { padding: 10px 4px 4px; }
+.side .lang-btns .btn { flex: 1; text-align: center; opacity: 1; }
+.side .lang-btns .btn.ghost { color: var(--teal-ink); border-color: rgba(255,255,255,.45); }
+.side .lang-btns .btn.primary { background: var(--gold); color: #1d1d1d; }

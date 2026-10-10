@@ -3,7 +3,7 @@ import { cloudConfigured, cloudCreateShop, cloudInit, cloudOpen, cloudSignIn, cl
 import { DemoBackend } from './demo'
 import { R } from './repo'
 import { store } from './store'
-import { act, Btn, Confirm, Input, MessageHost, NavCtx, useNavigator, useStoreVersion } from './ui/kit'
+import { act, Btn, Confirm, Input, LangSwitch, MessageHost, NavCtx, useNavigator, useStoreVersion } from './ui/kit'
 import type { Screen } from './ui/kit'
 import { Home, MENU } from './ui/screens/Home'
 import { Customers, CustomerEdit, CustomerProfile, MemberEdit, FamilyMembers, Merge } from './ui/screens/Customers'
@@ -68,6 +68,7 @@ function Shell() {
         <div className="brand">ٹیلر ماسٹر پرو</div>
         <button className={cur.name === 'home' ? 'on' : ''} onClick={() => nav.jump({ name: 'home' })}>ڈیش بورڈ</button>
         {MENU.map(m => <button key={m.screen} className={cur.name === m.screen ? 'on' : ''} onClick={() => nav.jump({ name: m.screen })}>{m.title}</button>)}
+        <LangSwitch compact />
       </aside>
       <div className="main">
         {demo && <div className="banner warn">ڈیمو موڈ: ڈیٹا صرف اس براؤزر میں ہے، فون سے نہیں جڑا۔</div>}
@@ -85,6 +86,7 @@ function Login({ onDemo }: { onDemo: () => void }) {
   const [pw, setPw] = useState('')
   const [busy, setBusy] = useState(false)
   return <div className="login">
+    <LangSwitch compact />
     <h1>ٹیلر ماسٹر پرو</h1>
     <p>دکان کے اکاؤنٹ سے لاگ اِن کریں۔ وہی اکاؤنٹ جو فون ایپ میں (سیٹنگز ← کلاؤڈ سنک) استعمال ہوتا ہے۔</p>
     <form onSubmit={e => { e.preventDefault(); setBusy(true); act(() => cloudSignIn(email, pw)).finally(() => setBusy(false)) }}>

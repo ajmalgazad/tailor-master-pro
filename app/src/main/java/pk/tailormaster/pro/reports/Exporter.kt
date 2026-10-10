@@ -9,6 +9,7 @@ import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import pk.tailormaster.pro.data.AppSettings
+import pk.tailormaster.pro.i18n.I18n
 import pk.tailormaster.pro.print.ReceiptRenderer
 import pk.tailormaster.pro.ui.Fmt
 import java.io.OutputStream
@@ -18,7 +19,7 @@ object Exporter {
     /** UTF-8 CSV with BOM so that Excel shows Urdu correctly. */
     fun writeCsv(t: ReportTable, out: OutputStream) {
         fun esc(s: String): String {
-            val v = s.replace("\"", "\"\"")
+            val v = I18n.tr(s).replace("\"", "\"\"")
             return if (v.contains(',') || v.contains('"') || v.contains('\n')) "\"$v\"" else v
         }
         val sb = StringBuilder()
@@ -33,8 +34,9 @@ object Exporter {
     }
 
     private fun layout(text: String, p: TextPaint, w: Int, align: Layout.Alignment): StaticLayout =
-        StaticLayout.Builder.obtain(text, 0, text.length, p, w.coerceAtLeast(10))
-            .setAlignment(align).setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL)
+        I18n.tr(text).let { t -> StaticLayout.Builder.obtain(t, 0, t.length, p, w.coerceAtLeast(10)) }
+            .setAlignment(align)
+            .setTextDirection(if (I18n.en) TextDirectionHeuristics.FIRSTSTRONG_LTR else TextDirectionHeuristics.FIRSTSTRONG_RTL)
             .setIncludePad(true).build()
 
     /** Right-to-left PDF table. Urdu is shaped by Android's text engine with a bundled Urdu font. */
@@ -60,10 +62,10 @@ object Exporter {
         }
         val wSum = weights.sum()
         val colW = weights.map { (it / wSum * tableW).toInt() }
-        // x positions from the RIGHT edge (column 0 is right-most)
-        val colRight = mutableListOf<Int>()
-        var x = pw - margin
-        colW.forEach { colRight += x; x -= it }
+        // Urdu: column 0 is right-most. English: column 0 is left-most.
+        val colLeft = mutableListOf<Int>()
+        if (I18n.en) { var x = margin; colW.forEach { colLeft += x; x += it } }
+        else { var x = pw - margin; colW.forEach { colLeft += x - it; x -= it } }
 
         val doc = PdfDocument()
         var pageNo = 0
@@ -76,8 +78,8 @@ object Exporter {
             val cv = page!!.canvas
             if (shade) cv.drawRect((pw - margin - tableW).toFloat(), y.toFloat(), (pw - margin).toFloat(), (y + h).toFloat(), fill)
             for (c in 0 until n) {
-                cv.save(); cv.translate((colRight[c] - colW[c] + 3).toFloat(), (y + 3).toFloat()); lays[c].draw(cv); cv.restore()
-                cv.drawRect((colRight[c] - colW[c]).toFloat(), y.toFloat(), colRight[c].toFloat(), (y + h).toFloat(), line)
+                cv.save(); cv.translate((colLeft[c] + 3).toFloat(), (y + 3).toFloat()); lays[c].draw(cv); cv.restore()
+                cv.drawRect(colLeft[c].toFloat(), y.toFloat(), (colLeft[c] + colW[c]).toFloat(), (y + h).toFloat(), line)
             }
             return h
         }
@@ -89,13 +91,13 @@ object Exporter {
             val cv = page!!.canvas
             y = margin
             if (pageNo == 1) {
-                val head = layout(s.shopName + " — " + t.title, titleP, tableW, Layout.Alignment.ALIGN_NORMAL)
+                val head = layout(I18n.tr(s.shopName) + " — " + I18n.tr(t.title), titleP, tableW, Layout.Alignment.ALIGN_NORMAL)
                 cv.save(); cv.translate(margin.toFloat(), y.toFloat()); head.draw(cv); cv.restore(); y += head.height + 2
-                val sub = (t.subtitle + "\nتیار کردہ: " + Fmt.dateTime(System.currentTimeMillis())).trim()
+                val sub = (I18n.tr(t.subtitle) + "\n" + I18n.tr("تیار کردہ: ") + Fmt.dateTime(System.currentTimeMillis())).trim()
                 val sl = layout(sub, subP, tableW, Layout.Alignment.ALIGN_NORMAL)
                 cv.save(); cv.translate(margin.toFloat(), y.toFloat()); sl.draw(cv); cv.restore(); y += sl.height + 8
             }
-            val foot = layout("صفحہ " + Fmt.num(pageNo), subP, tableW, Layout.Alignment.ALIGN_CENTER)
+            val foot = layout(I18n.tr("صفحہ ") + Fmt.num(pageNo), subP, tableW, Layout.Alignment.ALIGN_CENTER)
             cv.save(); cv.translate(margin.toFloat(), (ph - margin + 6).toFloat()); foot.draw(cv); cv.restore()
             y += drawRow(t.headers, headP, true)
         }

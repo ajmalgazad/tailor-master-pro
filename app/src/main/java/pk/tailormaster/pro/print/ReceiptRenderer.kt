@@ -12,6 +12,7 @@ import android.graphics.Typeface
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
+import pk.tailormaster.pro.i18n.I18n
 import android.text.TextPaint
 import androidx.core.content.res.ResourcesCompat
 import pk.tailormaster.pro.R
@@ -46,9 +47,9 @@ object ReceiptRenderer {
     }
 
     private fun layout(text: String, paint: TextPaint, width: Int, align: Layout.Alignment, extraSpacing: Float): StaticLayout =
-        StaticLayout.Builder.obtain(text, 0, text.length, paint, width.coerceAtLeast(10))
+        I18n.tr(text).let { t -> StaticLayout.Builder.obtain(t, 0, t.length, paint, width.coerceAtLeast(10)) }
             .setAlignment(align)
-            .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL)
+            .setTextDirection(if (I18n.en) TextDirectionHeuristics.FIRSTSTRONG_LTR else TextDirectionHeuristics.FIRSTSTRONG_RTL)
             .setIncludePad(true)
             .setLineSpacing(extraSpacing, 1f)
             .build()
@@ -107,8 +108,11 @@ object ReceiptRenderer {
                     val v = layout(line.value, p, valueW, Layout.Alignment.ALIGN_OPPOSITE, spacing)
                     val h = maxOf(lab.height, v.height)
                     blocks += Block(h) { c, y ->
-                        c.save(); c.translate((margin + valueW + 6).toFloat(), y.toFloat()); lab.draw(c); c.restore()
-                        c.save(); c.translate(margin.toFloat(), y.toFloat()); v.draw(c); c.restore()
+                        // Urdu: label on the right, value on the left. English: the other way round.
+                        val labX = if (I18n.en) margin else margin + valueW + 6
+                        val valX = if (I18n.en) margin + labelW + 6 else margin
+                        c.save(); c.translate(labX.toFloat(), y.toFloat()); lab.draw(c); c.restore()
+                        c.save(); c.translate(valX.toFloat(), y.toFloat()); v.draw(c); c.restore()
                     }
                 }
                 is RLine.Divider -> blocks += Block(14) { c, y ->

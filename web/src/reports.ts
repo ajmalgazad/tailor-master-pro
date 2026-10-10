@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // Port of reports/Reports.kt
 import { Calc, Dates, DAY } from './calc'
 import { Fmt } from './fmt'
@@ -144,7 +145,7 @@ export function buildReport(k: ReportKey, f: ReportFilter): ReportTable {
 }
 
 export function toCsv(t: ReportTable): string {
-  const esc = (s: string) => (/[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s)
+  const esc = (x: string) => { const s = tr(x); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s }
   const lines = [esc(t.title)]
   if (t.subtitle) lines.push(esc(t.subtitle.replace(/\n/g, ' ')))
   lines.push(t.headers.map(esc).join(','))

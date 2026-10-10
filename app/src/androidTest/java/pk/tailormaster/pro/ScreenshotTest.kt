@@ -94,6 +94,40 @@ class ScreenshotTest {
         repo.settings.update { it.copy(theme = "system", urduDigits = false) }
     }
 
+    /** Same app in English (left-to-right): main screens + receipts. */
+    @Test fun englishScreens() {
+        ensureSample()
+        val repo = app.repo
+        val (orderId, customerId) = runBlocking {
+            val o = repo.orderRows().first { !it.order.isDraft }
+            o.order.id to o.order.customerId
+        }
+        rule.runOnUiThread { repo.settings.update { it.copy(language = "en") }; pk.tailormaster.pro.i18n.I18n.setLanguage("en") }
+        try {
+            go("en_01_home", Screen.Home)
+            go("en_02_customers", Screen.Customers())
+            go("en_03_customer_profile", Screen.CustomerProfile(customerId))
+            go("en_04_booking_new", Screen.Booking(customerId = customerId))
+            go("en_05_order_detail", Screen.OrderDetail(orderId))
+            go("en_06_deliver", Screen.Deliver(orderId))
+            go("en_07_ledger", Screen.Ledger(customerId))
+            go("en_08_settings", Screen.Settings)
+            go("en_09_shop_settings", Screen.ShopSettings)
+            go("en_10_garments", Screen.Garments)
+            go("en_11_report_pending", Screen.Report(ReportKind.PENDING))
+            go("en_12_preview_booking", Screen.Preview(ReceiptKind.BOOKING, orderId))
+            runBlocking {
+                val s = repo.settings.value.copy(paperWidthMm = 58, printableDots = 384, receiptFont = "naskh")
+                save("en_receipt_booking", ReceiptRenderer.render(app, ReceiptBuilder.build(repo, ReceiptKind.BOOKING, orderId), s))
+                save("en_receipt_ledger", ReceiptRenderer.render(app, ReceiptBuilder.build(repo, ReceiptKind.LEDGER, customerId), s))
+                val t = pk.tailormaster.pro.reports.Reports.build(repo, ReportKind.DAILY_BOOKING, pk.tailormaster.pro.reports.ReportFilter())
+                FileOutputStream(File(out, "en_report_bookings.pdf")).use { pk.tailormaster.pro.reports.Exporter.writePdf(app, s, t, it) }
+            }
+        } finally {
+            rule.runOnUiThread { repo.settings.update { it.copy(language = "ur") }; pk.tailormaster.pro.i18n.I18n.setLanguage("ur") }
+        }
+    }
+
     @Test fun renderAllReceipts() {
         ensureSample()
         val repo = app.repo

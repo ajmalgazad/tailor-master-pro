@@ -1,3 +1,4 @@
+import { isEn, translateHtml } from './i18n'
 // Port of print/ReceiptBuilder.kt — same receipt content; rendered as HTML for the browser's print dialog.
 import { Fmt } from './fmt'
 import { Q, decodeCharges, decodeIds, decodeSnapshot, decodeValues, UserError } from './repo'
@@ -235,9 +236,10 @@ export function receiptBody(doc: ReceiptDoc): string {
 export function receiptCss(ls: LocalSettings): string {
   const font = ls.receiptFont === 'nastaliq' ? "'Noto Nastaliq Urdu', serif" : "'Noto Naskh Arabic', serif"
   const lh = ls.receiptFont === 'nastaliq' ? 2.1 : 1.6
-  return `.receipt{direction:rtl;font-family:${font};font-size:${ls.receiptFontSize}pt;line-height:${lh};color:#000;background:#fff;width:${ls.paperWidthMm - 6}mm;padding:0 1mm}
-.receipt .t{white-space:pre-wrap}.receipt .b{font-weight:700}.receipt .a-center{text-align:center}.receipt .a-end{text-align:left}
-.receipt .p{display:flex;justify-content:space-between;gap:2mm}.receipt .p .v{text-align:left;direction:rtl;white-space:nowrap}
+  const en = isEn(), dir = en ? 'ltr' : 'rtl', endAlign = en ? 'right' : 'left'
+  return `.receipt{direction:${dir};font-family:${font};font-size:${ls.receiptFontSize}pt;line-height:${lh};color:#000;background:#fff;width:${ls.paperWidthMm - 6}mm;padding:0 1mm}
+.receipt .t{white-space:pre-wrap}.receipt .b{font-weight:700}.receipt .a-center{text-align:center}.receipt .a-end{text-align:${endAlign}}
+.receipt .p{display:flex;justify-content:space-between;gap:2mm}.receipt .p .v{text-align:${endAlign};direction:${dir};white-space:nowrap}
 .receipt hr{border:0;border-top:1.5px dashed #000;margin:1mm 0}.receipt hr.solid{border-top-style:solid}
 .receipt .band{background:#000;color:#fff;text-align:center;font-weight:700;padding:.5mm 0;margin:1mm 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .receipt .logo{text-align:center}.receipt .logo img{max-width:60%;max-height:22mm}`
@@ -254,7 +256,7 @@ export function printReceipts(docs: ReceiptDoc[], ls: LocalSettings): Promise<vo
 <style>@page{size:${ls.paperWidthMm}mm auto;margin:2mm}body{margin:0}${receiptCss(ls)}.receipt{page-break-after:always}.receipt:last-child{page-break-after:auto}</style></head>
 <body>${docs.map(d => `<div class="receipt">${receiptBody(d)}</div>`).join('')}</body></html>`
     const w = f.contentWindow!
-    w.document.open(); w.document.write(html); w.document.close()
+    w.document.open(); w.document.write(translateHtml(html)); w.document.close()
     const go = () => {
       w.focus(); w.print()
       setTimeout(() => { f.remove(); resolve() }, 1000)

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +38,8 @@ fun AppRoot(repo: Repository, printer: PrinterManager, sync: pk.tailormaster.pro
     var unlocked by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { repo.seedIfNeeded() }
+    // keep the language in step with the setting (e.g. after a restore)
+    LaunchedEffect(settings.language) { pk.tailormaster.pro.i18n.I18n.setLanguage(settings.language) }
 
     TailorTheme(settings.theme, settings.uiFont) {
         CompositionLocalProvider(LocalRepo provides repo, LocalPrinter provides printer, LocalNav provides nav, LocalSync provides sync) {

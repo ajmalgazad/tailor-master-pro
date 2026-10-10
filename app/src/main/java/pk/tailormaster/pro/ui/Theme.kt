@@ -75,7 +75,7 @@ fun TailorTheme(themeKey: String, fontKey: String, content: @Composable () -> Un
         labelSmall = st(12),
     )
     MaterialTheme(colorScheme = if (dark) Dark else Light, typography = typo) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        CompositionLocalProvider(LocalLayoutDirection provides if (pk.tailormaster.pro.i18n.I18n.en) LayoutDirection.Ltr else LayoutDirection.Rtl) {
             content()
         }
     }

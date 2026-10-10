@@ -19,6 +19,8 @@ class TailorApp : Application() {
         super.onCreate()
         val settings = SettingsStore(this)
         val db = AppDatabase.create(this)
+        pk.tailormaster.pro.i18n.I18n.load(this)
+        pk.tailormaster.pro.i18n.I18n.setLanguage(settings.value.language)
         repo = Repository(db, settings)
         printer = PrinterManager(this)
         sync = SyncManager(this, repo, db)

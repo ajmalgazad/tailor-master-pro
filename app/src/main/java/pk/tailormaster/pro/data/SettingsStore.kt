@@ -46,6 +46,8 @@ data class AppSettings(
     val theme: String = "system",
     val uiFont: String = "system",
     val dueSoonDays: Int = 1,
+    /** App language on this device: "ur" or "en". */
+    val language: String = "ur",
     // Security & backup
     val pinHash: String = "",
     val lastBackupAt: Long = 0,

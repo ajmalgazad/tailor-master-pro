@@ -1,3 +1,4 @@
+import { isEn, translateHtml } from '../../i18n'
 import { useState, useSyncExternalStore } from 'react'
 import { Dates } from '../../calc'
 import { Fmt } from '../../fmt'
@@ -11,7 +12,7 @@ import { checkBackup, exportBackup, restoreBackup } from '../../backup'
 import type { BackupCheck } from '../../backup'
 import { addSample, removeSample } from '../../sample'
 import { cloudSignOut, cloudState, onCloudState } from '../../cloud'
-import { act, download, Btn, Confirm, CustomerPicker, DateInput, Empty, Input, KV, Page, Row, Section, Select, useNav, useStoreVersion } from '../kit'
+import { act, download, Btn, Confirm, CustomerPicker, DateInput, Empty, Input, KV, LangSwitch, Page, Row, Section, Select, useNav, useStoreVersion } from '../kit'
 
 export function Reports() {
   const nav = useNav()
@@ -29,14 +30,14 @@ function printTable(t: ReportTable) {
   const landscape = t.headers.length > 6
   const html = `<!doctype html><html lang="ur" dir="rtl"><head><meta charset="utf-8"><title>${esc(t.title)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&display=swap">
-<style>@page{size:A4 ${landscape ? 'landscape' : 'portrait'};margin:12mm}body{font-family:'Noto Naskh Arabic',serif;font-size:10pt;direction:rtl}
-h1{font-size:15pt;margin:0}p{color:#444;margin:2px 0 8px;white-space:pre-wrap}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:3px 5px;text-align:right;vertical-align:top}
+<style>@page{size:A4 ${landscape ? 'landscape' : 'portrait'};margin:12mm}body{font-family:'Noto Naskh Arabic',serif;font-size:10pt;direction:${isEn() ? 'ltr' : 'rtl'}}
+h1{font-size:15pt;margin:0}p{color:#444;margin:2px 0 8px;white-space:pre-wrap}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:3px 5px;text-align:${isEn() ? 'left' : 'right'};vertical-align:top}
 th{background:#e6eef0}tfoot td{font-weight:700;background:#f4f4f4}</style></head><body>
 <h1>${esc(store.shop.shopName)} — ${esc(t.title)}</h1><p>${esc(t.subtitle)}\nتیار کردہ: ${esc(Fmt.dateTime(Date.now()))}</p>
 <table><thead><tr>${t.headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${t.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('') || '<tr><td>کوئی ریکارڈ نہیں</td></tr>'}</tbody>
 ${t.totals ? `<tfoot><tr>${t.totals.map(c => `<td>${esc(c)}</td>`).join('')}</tr></tfoot>` : ''}</table></body></html>`
   const w = f.contentWindow!
-  w.document.open(); w.document.write(html); w.document.close()
+  w.document.open(); w.document.write(translateHtml(html)); w.document.close()
   setTimeout(() => { w.focus(); w.print(); setTimeout(() => f.remove(), 1000) }, 700)
 }
 
@@ -92,6 +93,7 @@ export function Settings() {
     ['ریٹ ماسٹر', 'معیاری اور خصوصی ریٹ، سروسز', 'rates'], ['ڈپلیکیٹ کسٹمر ضم کریں', '', 'merge'], ['آڈٹ لاگ', 'تمام اہم تبدیلیوں کا ریکارڈ', 'audit'],
   ]
   return <Page title="بیک اپ اور سیٹنگز">
+    <Section title="Language / زبان"><LangSwitch /></Section>
     <Section title={cloud ? 'کلاؤڈ اکاؤنٹ' : 'ڈیمو موڈ'}>
       {cloud ? <>
         <KV k="اکاؤنٹ" v={cloudState.email} bold />

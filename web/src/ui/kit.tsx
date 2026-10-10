@@ -1,3 +1,4 @@
+import { isEn, setLang } from '../i18n'
 import React, { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { store, UserError } from '../store'
 import { Calc, Dates, Digits } from '../calc'
@@ -72,7 +73,7 @@ export function Page({ title, children, actions, back = true }: { title: string;
   return (
     <div className="page">
       <header className="bar">
-        {back && nav.stack.length > 1 ? <button className="icon" aria-label="واپس" onClick={() => nav.back()}>→</button> : <span className="icon-sp" />}
+        {back && nav.stack.length > 1 ? <button className="icon" aria-label="واپس" onClick={() => nav.back()}>{isEn() ? '←' : '→'}</button> : <span className="icon-sp" />}
         <h1>{title}</h1>
         <div className="bar-actions">{actions}</div>
       </header>
@@ -220,4 +221,13 @@ export function download(name: string, content: string | Blob, type = 'text/plai
   a.href = URL.createObjectURL(blob); a.download = name
   document.body.appendChild(a); a.click(); a.remove()
   setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+}
+
+/** Language switch (Urdu / English). Only changes this browser. */
+export function LangSwitch({ compact }: { compact?: boolean }) {
+  const en = isEn()
+  return <div className="lang-btns" style={compact ? { marginTop: 10 } : undefined}>
+    <Btn small={compact} kind={en ? 'ghost' : 'primary'} onClick={() => en && setLang('ur')}>اردو</Btn>
+    <Btn small={compact} kind={en ? 'primary' : 'ghost'} onClick={() => !en && setLang('en')}>English</Btn>
+  </div>
 }
