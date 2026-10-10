@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "73575396199",
+    "project_id": "tailor-master-pro-a2bfd",
+    "storage_bucket": "tailor-master-pro-a2bfd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:73575396199:android:10aae30b13d06cbbb0b5c2",
+        "android_client_info": {
+          "package_name": "pk.tailormaster.pro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9ULcTN_qsGssChLL1kFB3eXhZFi0Tf1w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
