@@ -130,10 +130,8 @@ fun BookingScreen(s: Screen.Booking) {
             }
             // ---------- Dates
             SectionCard("تاریخیں") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DateInput("بکنگ", d.bookingDate, { d = d.copy(bookingDate = it) }, Modifier.weight(1f))
-                    DateInput("ڈیلیوری", d.deliveryDate, { d = d.copy(deliveryDate = it) }, Modifier.weight(1f))
-                }
+                DateInput("بکنگ کی تاریخ", d.bookingDate, { d = d.copy(bookingDate = it) })
+                DateInput("ڈیلیوری کی تاریخ", d.deliveryDate, { d = d.copy(deliveryDate = it) })
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(3, 5, 7, 10, 15).forEach { n ->
                         SmallButton(Fmt.num(n) + " دن", Modifier.weight(1f)) { d = d.copy(deliveryDate = Dates.addDays(d.bookingDate, n)) }

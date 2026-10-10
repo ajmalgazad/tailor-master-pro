@@ -235,6 +235,7 @@ fun DateInput(label: String, ms: Long, onChange: (Long) -> Unit, modifier: Modif
             }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show()
         },
         modifier = modifier.heightIn(min = 56.dp), shape = RoundedCornerShape(8.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
     ) {
         Icon(Icons.Default.DateRange, null)
         Spacer(Modifier.width(8.dp))
@@ -249,7 +250,13 @@ fun <T> Select(label: String, options: List<T>, selected: T?, labelOf: (T) -> St
         OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), shape = RoundedCornerShape(8.dp)) {
             Column(Modifier.weight(1f)) {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(selected?.let(labelOf) ?: "منتخب کریں", style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                @Suppress("UNCHECKED_CAST")
+                val shown = when {
+                    selected != null -> labelOf(selected)
+                    options.any { it == null } -> labelOf(null as T)
+                    else -> "منتخب کریں"
+                }
+                Text(shown, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Icon(Icons.Default.ArrowDropDown, null)
         }

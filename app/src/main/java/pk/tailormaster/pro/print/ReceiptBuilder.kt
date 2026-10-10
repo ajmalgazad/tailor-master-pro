@@ -39,8 +39,10 @@ object ReceiptBuilder {
         }
         if (includeTerms && s.deliveryTerms.isNotBlank()) add(RLine.Text(s.deliveryTerms, 0.8f))
         if (signature && s.showSignature) {
-            add(RLine.Space(28))
-            add(RLine.Pair("دستخط دکاندار: ______", "دستخط کسٹمر: ______", false, 0.8f))
+            add(RLine.Space(24))
+            add(RLine.Text("دستخط دکاندار: ____________________", 0.85f))
+            add(RLine.Space(20))
+            add(RLine.Text("دستخط کسٹمر: _____________________", 0.85f))
         }
         if (s.footer.isNotBlank()) {
             add(RLine.Divider())
@@ -75,7 +77,7 @@ object ReceiptBuilder {
         lines += RLine.Pair("آرڈر نمبر:", Fmt.orderNo(o.id), true)
         lines += RLine.Pair("بکنگ تاریخ:", Fmt.date(o.bookingDate))
         lines += RLine.Pair("ڈیلیوری تاریخ:", Fmt.date(o.deliveryDate), true)
-        if (o.urgent) lines += RLine.Text("⚡ ارجنٹ آرڈر", 1f, true, Align.CENTER)
+        if (o.urgent) lines += RLine.Text("★ ارجنٹ آرڈر ★", 1f, true, Align.CENTER)
         lines += RLine.Pair("کسٹمر:", f.customer.name + " (" + Fmt.customerCode(f.customer.id) + ")")
         if (s.showFatherName && f.customer.fatherName.isNotBlank()) lines += RLine.Pair("ولدیت:", f.customer.fatherName)
         if (f.customer.mobile.isNotBlank()) lines += RLine.Pair("موبائل:", Fmt.d(f.customer.mobile))
@@ -99,8 +101,9 @@ object ReceiptBuilder {
         lines += RLine.Pair("کپڑوں کی رقم:", m(o.itemsTotal))
         decodeCharges(o.chargesJson).forEach { lines += RLine.Pair(it.name + ":", m(it.amount)) }
         if (o.discountAmount > 0) {
-            val pct = if (o.discountType == "PERCENT") " (" + Fmt.num(o.discountInput) + "%)" else ""
-            lines += RLine.Pair("رعایت$pct:", "- " + m(o.discountAmount))
+            val pctNum = if (o.discountInput % 1.0 == 0.0) o.discountInput.toLong().toString() else o.discountInput.toString()
+            val pct = if (o.discountType == "PERCENT") " (" + Fmt.d(pctNum) + "%)" else ""
+            lines += RLine.Pair("رعایت$pct:", m(o.discountAmount))
         }
         lines += RLine.Pair("کل رقم:", m(o.netAmount), true, 1.15f)
         lines += RLine.Pair("ایڈوانس / وصول شدہ:", m(f.paid))
@@ -122,7 +125,7 @@ object ReceiptBuilder {
         lines += RLine.Pair("آرڈر نمبر:", Fmt.orderNo(f.order.id), true)
         lines += RLine.Pair("کسٹمر:", f.customer.name)
         lines += RLine.Pair("ڈیلیوری:", Fmt.date(f.order.deliveryDate), true)
-        if (f.order.urgent) lines += RLine.Text("⚡ ارجنٹ", 1f, true, Align.CENTER)
+        if (f.order.urgent) lines += RLine.Text("★ ارجنٹ ★", 1f, true, Align.CENTER)
         for (it in f.items) {
             lines += RLine.Divider(false)
             lines += RLine.Text(it.garmentName + " × " + Fmt.num(it.qty), 1.1f, true)

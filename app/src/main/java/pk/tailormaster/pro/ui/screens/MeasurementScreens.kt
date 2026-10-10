@@ -174,10 +174,8 @@ fun ProfileEditScreen(s: Screen.ProfileEdit) {
                     style = MaterialTheme.typography.bodySmall, color = Semantic.warn)
             }
             Input("پروفائل کا نام *", name, { name = it })
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Select("اکائی", listOf("انچ", "سینٹی میٹر"), unit, { it }, { unit = it }, Modifier.weight(1f))
-                DateInput("تاریخ", date, { date = it }, Modifier.weight(1f))
-            }
+            Select("اکائی", listOf("انچ", "سینٹی میٹر"), unit, { it }, { unit = it })
+            DateInput("تاریخ", date, { date = it })
             if (garment != null) {
                 SectionCard("ناپ (${unit})") {
                     rows.forEachIndexed { i, r ->
