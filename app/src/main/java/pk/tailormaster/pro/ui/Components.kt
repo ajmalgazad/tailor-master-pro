@@ -97,6 +97,8 @@ fun CoroutineScope.act(success: String? = null, block: suspend () -> Unit) = lau
     try {
         block()
         if (success != null) Msg.ok(success)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e // screen was closed: not an error
     } catch (e: UserError) {
         Msg.err(e.message ?: "خرابی")
     } catch (e: Exception) {
@@ -110,7 +112,7 @@ fun <T> load(vararg keys: Any?, block: suspend Repository.() -> T): State<T?> {
     val repo = LocalRepo.current
     val v by repo.version.collectAsState()
     return produceState<T?>(null, v, *keys) {
-        value = try { repo.block() } catch (e: UserError) { Msg.err(e.message ?: ""); null } catch (e: Exception) {
+        value = try { repo.block() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: UserError) { Msg.err(e.message ?: ""); null } catch (e: Exception) {
             Msg.err("خرابی: " + (e.message ?: e.javaClass.simpleName)); null
         }
     }
