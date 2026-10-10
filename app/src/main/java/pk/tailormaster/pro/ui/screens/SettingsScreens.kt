@@ -53,6 +53,7 @@ fun SettingsScreen() {
     var askSampleRemove by remember { mutableStateOf(false) }
 
     val entries = listOf(
+        Entry("کلاؤڈ سنک (فون + ویب)", "ایک اکاؤنٹ سے فون اور کمپیوٹر پر ایک ہی ڈیٹا") { nav.go(Screen.Cloud) },
         Entry("دکان اور عمومی سیٹنگز", "نام، پتہ، کرنسی، تاریخ، ہندسے، تھیم، فونٹ") { nav.go(Screen.ShopSettings) },
         Entry("رسید ڈیزائنر", "لوگو، سرخی، فوٹر، شرائط، حروف کا سائز") { nav.go(Screen.ReceiptDesigner) },
         Entry("بلوٹوتھ پرنٹر", "پرنٹر جوڑیں، 58mm / 80mm، ٹیسٹ پرنٹ") { nav.go(Screen.PrinterSetup) },

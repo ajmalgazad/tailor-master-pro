@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 
 @Dao
 interface TailorDao {
@@ -172,4 +173,36 @@ interface TailorDao {
     @Query("DELETE FROM deliveries WHERE orderId IN (:orderIds)") fun deleteDeliveriesOf(orderIds: List<Long>)
     @Query("DELETE FROM txns WHERE customerId IN (:ids)") fun deleteTxnsOf(ids: List<Long>)
     @Query("DELETE FROM expenses WHERE sample = 1") fun deleteSampleExpenses()
+
+    // ---------------- Sync: apply remote changes ----------------
+    @Upsert fun upsertCustomer(x: Customer)
+    @Upsert fun upsertFamilyMember(x: FamilyMember)
+    @Upsert fun upsertGarment(x: Garment)
+    @Upsert fun upsertMeasurementField(x: MeasurementField)
+    @Upsert fun upsertMeasurementProfile(x: MeasurementProfile)
+    @Upsert fun upsertCustomRate(x: CustomRate)
+    @Upsert fun upsertRateHistory(x: RateHistory)
+    @Upsert fun upsertExtraService(x: ExtraService)
+    @Upsert fun upsertOrder(x: Order)
+    @Upsert fun upsertOrderItem(x: OrderItem)
+    @Upsert fun upsertStatusLog(x: StatusLog)
+    @Upsert fun upsertTxn(x: Txn)
+    @Upsert fun upsertDelivery(x: Delivery)
+    @Upsert fun upsertExpense(x: Expense)
+    @Upsert fun upsertPrintLog(x: PrintLog)
+    @Upsert fun upsertAuditLog(x: AuditLog)
+
+    // Extra reads used by change tracking
+    @Query("SELECT * FROM measurement_profiles WHERE memberId = :memberId AND garmentId = :garmentId AND isDefault = 1") fun defaultProfiles(memberId: Long, garmentId: Long): List<MeasurementProfile>
+    @Query("SELECT * FROM custom_rates WHERE customerId = :customerId") fun ratesOfCustomer(customerId: Long): List<CustomRate>
+    @Query("SELECT * FROM expenses WHERE sample = 1") fun sampleExpenses(): List<Expense>
+    @Query("SELECT * FROM customers WHERE id IN (:ids)") fun customersByIds(ids: List<Long>): List<Customer>
+    @Query("SELECT * FROM orders WHERE id IN (:ids)") fun ordersByIds(ids: List<Long>): List<Order>
+    @Query("SELECT * FROM order_items WHERE orderId IN (:orderIds)") fun itemsOf(orderIds: List<Long>): List<OrderItem>
+    @Query("SELECT * FROM status_log WHERE orderId IN (:orderIds)") fun statusLogsOf(orderIds: List<Long>): List<StatusLog>
+    @Query("SELECT * FROM deliveries WHERE orderId IN (:orderIds)") fun deliveriesOf(orderIds: List<Long>): List<Delivery>
+    @Query("SELECT * FROM txns WHERE customerId IN (:ids)") fun txnsOf(ids: List<Long>): List<Txn>
+    @Query("SELECT * FROM measurement_profiles WHERE customerId IN (:ids)") fun profilesOf(ids: List<Long>): List<MeasurementProfile>
+    @Query("SELECT * FROM custom_rates WHERE customerId IN (:ids)") fun ratesOf(ids: List<Long>): List<CustomRate>
+    @Query("SELECT * FROM family_members WHERE customerId IN (:ids)") fun membersOf(ids: List<Long>): List<FamilyMember>
 }

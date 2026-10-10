@@ -47,8 +47,8 @@ private val quickFilters = listOf(
 private fun matchesOrder(r: OrderRow, q: String): Boolean {
     if (q.isBlank()) return true
     val t = Digits.toLatin(q.trim()).lowercase()
-    val no = "b-" + r.order.id.toString().padStart(5, '0')
-    return no.contains(t) || r.order.id.toString() == t.removePrefix("b-").trimStart('0') || r.customerName.lowercase().contains(t) ||
+    val no = pk.tailormaster.pro.data.DeviceIds.code("B", r.order.id, 5).lowercase()
+    return no.contains(t) || pk.tailormaster.pro.data.DeviceIds.parse(t) == r.order.id || r.customerName.lowercase().contains(t) ||
         r.customerMobile.contains(t) || r.memberName.contains(t)
 }
 

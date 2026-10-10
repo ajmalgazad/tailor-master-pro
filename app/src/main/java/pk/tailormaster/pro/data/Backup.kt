@@ -101,7 +101,7 @@ object BackupManager {
     /** Replaces ALL data with the backup, inside one transaction (all-or-nothing). */
     suspend fun restore(repo: Repository, data: BackupData) = withContext(Dispatchers.IO) {
         val dao = repo.rawDao()
-        repo.rawDb().runInTransaction(Runnable {
+        repo.tx {
             dao.clearAudits(); dao.clearPrintLogs(); dao.clearExpenses(); dao.clearDeliveries(); dao.clearTxns()
             dao.clearStatusLogs(); dao.clearItems(); dao.clearOrders(); dao.clearServices(); dao.clearRateHistory()
             dao.clearRates(); dao.clearProfiles(); dao.clearFields(); dao.clearGarments(); dao.clearMembers(); dao.clearCustomers()
@@ -112,10 +112,11 @@ object BackupManager {
             dao.insertDeliveries(data.deliveries); dao.insertExpenses(data.expenses); dao.insertPrintLogs(data.printLogs)
             dao.insertAudits(data.audits)
             dao.insertAudit(AuditLog(entity = "backup", entityId = 0, action = "restore", detail = "exported ${data.exportedAt}"))
-        })
-        val keepPin = repo.settings.value.pinHash
-        val keepBackup = repo.settings.value.lastBackupAt
-        repo.settings.replaceAll(data.settings.copy(pinHash = keepPin, lastBackupAt = keepBackup, seeded = true))
+        }
+        val cur = repo.settings.value
+        repo.settings.replaceAll(data.settings.copy(pinHash = cur.pinHash, lastBackupAt = cur.lastBackupAt, seeded = true,
+            deviceNo = cur.deviceNo, cloudUid = cur.cloudUid, cloudEmail = cur.cloudEmail, lastPull = cur.lastPull,
+            printerAddress = cur.printerAddress, printerName = cur.printerName))
         repo.bump()
     }
 }

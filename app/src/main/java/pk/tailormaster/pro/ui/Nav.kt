@@ -39,6 +39,7 @@ sealed class Screen {
     object Backup : Screen()
     object AuditLog : Screen()
     object Merge : Screen()
+    object Cloud : Screen()
 }
 
 class Navigator {

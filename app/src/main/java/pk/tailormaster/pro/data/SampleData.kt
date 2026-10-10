@@ -59,7 +59,7 @@ object SampleData {
 
     suspend fun remove(repo: Repository) = withContext(Dispatchers.IO) {
         val dao = repo.rawDao()
-        repo.rawDb().runInTransaction(Runnable {
+        repo.tx {
             val ids = dao.sampleCustomerIds()
             if (ids.isNotEmpty()) {
                 val orderIds = dao.orderIdsOf(ids)
@@ -70,7 +70,7 @@ object SampleData {
             }
             dao.deleteSampleExpenses()
             dao.insertAudit(AuditLog(entity = "sample", entityId = 0, action = "remove", detail = "customers ${ids.size}"))
-        })
+        }
         repo.settings.update { it.copy(sampleLoaded = false) }
         repo.bump()
     }

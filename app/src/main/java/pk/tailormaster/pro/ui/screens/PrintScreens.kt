@@ -92,7 +92,7 @@ fun PrintCenterScreen() {
             item {
                 SectionCard("آرڈر نمبر سے رسید") {
                     Input("آرڈر نمبر (مثلاً 12 یا B-00012)", orderNo, { orderNo = it }, keyboard = KeyboardType.Text)
-                    val id = pk.tailormaster.pro.domain.Digits.toLatin(orderNo).uppercase().removePrefix("B-").removePrefix("B").trim().toLongOrNull()
+                    val id = if (orderNo.isBlank()) null else pk.tailormaster.pro.data.DeviceIds.parse(orderNo)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SmallButton("بکنگ رسید", Modifier.weight(1f), enabled = id != null) { nav.go(Screen.Preview(ReceiptKind.BOOKING, id!!)) }
                         SmallButton("ناپ کی پرچی", Modifier.weight(1f), enabled = id != null) { nav.go(Screen.Preview(ReceiptKind.MEASUREMENT, id!!)) }
@@ -294,6 +294,7 @@ fun PrinterSetupScreen() {
 fun ReceiptDesignerScreen() {
     val ctx = LocalContext.current
     val repo = LocalRepo.current
+    val sync = LocalSync.current
     val settings by repo.settings.state.collectAsState()
     var preview by remember { mutableStateOf<Bitmap?>(null) }
     var sampleKind by remember { mutableStateOf("TEST") }
@@ -306,6 +307,7 @@ fun ReceiptDesignerScreen() {
                 val b = Bitmap.createScaledBitmap(src, (src.width * scale).toInt().coerceAtLeast(1), (src.height * scale).toInt().coerceAtLeast(1), true)
                 FileOutputStream(File(ctx.filesDir, "logo.png")).use { b.compress(Bitmap.CompressFormat.PNG, 100, it) }
                 repo.settings.update { it.copy(logoFile = "logo.png", showLogo = true) }
+                sync?.pushLogo()
                 Msg.ok("لوگو محفوظ ہو گیا")
             } catch (e: Exception) { Msg.err("لوگو محفوظ نہیں ہو سکا: " + e.message) }
         }
@@ -328,7 +330,7 @@ fun ReceiptDesignerScreen() {
                 Input("پتہ", settings.shopAddress, { v -> up { it.copy(shopAddress = v) } }, singleLine = false)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SmallButton("لوگو منتخب کریں", Modifier.weight(1f)) { logoPicker.launch("image/*") }
-                    if (settings.logoFile.isNotBlank()) SmallButton("لوگو ہٹائیں", Modifier.weight(1f)) { up { it.copy(logoFile = "") } }
+                    if (settings.logoFile.isNotBlank()) SmallButton("لوگو ہٹائیں", Modifier.weight(1f)) { up { it.copy(logoFile = "") }; File(ctx.filesDir, "logo.png").delete(); sync?.pushLogo() }
                 }
                 SwitchRow("لوگو دکھائیں", settings.showLogo) { v -> up { it.copy(showLogo = v) } }
             }

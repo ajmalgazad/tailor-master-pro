@@ -21,10 +21,11 @@ object Fmt {
 
     fun num(n: Number): String = d(n.toString())
 
-    fun customerCode(id: Long) = d("C-" + id.toString().padStart(4, '0'))
-    fun memberCode(id: Long) = d("M-" + id.toString().padStart(4, '0'))
-    fun orderNo(id: Long) = d("B-" + id.toString().padStart(5, '0'))
-    fun txnNo(id: Long) = d("T-" + id.toString().padStart(5, '0'))
-    fun profileCode(id: Long) = d("P-" + id.toString().padStart(4, '0'))
-    fun deliveryNo(id: Long) = d("D-" + id.toString().padStart(5, '0'))
+    private fun code(p: String, id: Long, pad: Int) = d(pk.tailormaster.pro.data.DeviceIds.code(p, id, pad))
+    fun customerCode(id: Long) = code("C", id, 4)
+    fun memberCode(id: Long) = code("M", id, 4)
+    fun orderNo(id: Long) = code("B", id, 5)
+    fun txnNo(id: Long) = code("T", id, 5)
+    fun profileCode(id: Long) = code("P", id, 4)
+    fun deliveryNo(id: Long) = code("D", id, 5)
 }

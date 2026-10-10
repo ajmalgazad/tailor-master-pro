@@ -9,6 +9,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val app = application as TailorApp
-        setContent { AppRoot(app.repo, app.printer) }
+        setContent { AppRoot(app.repo, app.printer, app.sync) }
     }
 }

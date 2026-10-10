@@ -31,7 +31,7 @@ import pk.tailormaster.pro.print.PrinterManager
 import pk.tailormaster.pro.ui.screens.*
 
 @Composable
-fun AppRoot(repo: Repository, printer: PrinterManager) {
+fun AppRoot(repo: Repository, printer: PrinterManager, sync: pk.tailormaster.pro.sync.SyncManager? = null) {
     val settings by repo.settings.state.collectAsState()
     Fmt.settings = settings
     val nav = remember { Navigator() }
@@ -41,7 +41,7 @@ fun AppRoot(repo: Repository, printer: PrinterManager) {
     LaunchedEffect(Unit) { repo.seedIfNeeded() }
 
     TailorTheme(settings.theme, settings.uiFont) {
-        CompositionLocalProvider(LocalRepo provides repo, LocalPrinter provides printer, LocalNav provides nav) {
+        CompositionLocalProvider(LocalRepo provides repo, LocalPrinter provides printer, LocalNav provides nav, LocalSync provides sync) {
             Surface(Modifier.fillMaxSize().safeDrawingPadding(), color = MaterialTheme.colorScheme.background) {
                 Box(Modifier.fillMaxSize()) {
                     if (settings.pinHash.isNotEmpty() && !unlocked) {
@@ -100,6 +100,7 @@ private fun ScreenHost(s: Screen) {
         Screen.Backup -> BackupScreen()
         Screen.AuditLog -> AuditLogScreen()
         Screen.Merge -> MergeScreen()
+        Screen.Cloud -> CloudScreen()
     }
 }
 

@@ -48,23 +48,29 @@ object Seed {
         G("دیگر کپڑے (زنانہ)", Gender.WOMEN, 0, listOf("لمبائی", "چھاتی", "کمر")),
     )
 
+    /**
+     * Ids are fixed (1, 2, 3 ...) so that every device seeds exactly the same records.
+     * The web app's seed uses the same list in the same order.
+     */
     fun insertDefaults(dao: TailorDao) {
         var sort = 0
-        (men + women).forEach { g ->
-            val id = dao.insertGarment(Garment(name = g.name, gender = g.gender, sortOrder = sort++, defaultRate = g.rate * 100,
+        var fieldId = 0L
+        (men + women).forEachIndexed { gi, g ->
+            val id = (gi + 1).toLong()
+            dao.insertGarment(Garment(id = id, name = g.name, gender = g.gender, sortOrder = sort++, defaultRate = g.rate * 100,
                 receiptDesc = g.name))
-            dao.insertRateHistory(RateHistory(garmentId = id, oldRate = 0, newRate = g.rate * 100, note = "ابتدائی ریٹ"))
+            dao.insertRateHistory(RateHistory(id = id, garmentId = id, oldRate = 0, newRate = g.rate * 100, note = "ابتدائی ریٹ", at = 0))
             g.fields.distinct().forEachIndexed { i, label ->
-                dao.insertField(MeasurementField(garmentId = id, label = label, sortOrder = i, required = label in g.required))
+                dao.insertField(MeasurementField(id = ++fieldId, garmentId = id, label = label, sortOrder = i, required = label in g.required))
             }
         }
         listOf(
-            ExtraService(name = "ارجنٹ سلائی", kind = ServiceKind.URGENT, amount = 50000),
-            ExtraService(name = "کڑھائی", kind = ServiceKind.EMBROIDERY, amount = 100000),
-            ExtraService(name = "ڈیزائن / بٹن ورک", kind = ServiceKind.EMBROIDERY, amount = 30000),
-            ExtraService(name = "آلٹریشن", kind = ServiceKind.ALTERATION, amount = 30000),
-            ExtraService(name = "مرمت", kind = ServiceKind.ALTERATION, amount = 20000),
-            ExtraService(name = "کالر / کف اسپیشل", kind = ServiceKind.OTHER, amount = 20000),
+            ExtraService(id = 1, name = "ارجنٹ سلائی", kind = ServiceKind.URGENT, amount = 50000),
+            ExtraService(id = 2, name = "کڑھائی", kind = ServiceKind.EMBROIDERY, amount = 100000),
+            ExtraService(id = 3, name = "ڈیزائن / بٹن ورک", kind = ServiceKind.EMBROIDERY, amount = 30000),
+            ExtraService(id = 4, name = "آلٹریشن", kind = ServiceKind.ALTERATION, amount = 30000),
+            ExtraService(id = 5, name = "مرمت", kind = ServiceKind.ALTERATION, amount = 20000),
+            ExtraService(id = 6, name = "کالر / کف اسپیشل", kind = ServiceKind.OTHER, amount = 20000),
         ).forEach { dao.insertService(it) }
     }
 }

@@ -51,10 +51,52 @@ data class AppSettings(
     val lastBackupAt: Long = 0,
     val sampleLoaded: Boolean = false,
     val seeded: Boolean = false,
+    // Cloud sync (this device only)
+    val deviceNo: Int = 0,
+    val cloudUid: String = "",
+    val cloudEmail: String = "",
+    /** Server time (ms) of the newest change already pulled from the cloud. */
+    val lastPull: Long = 0,
 )
 
-class SettingsStore(context: Context) {
-    private val prefs = context.getSharedPreferences("tailor_settings", Context.MODE_PRIVATE)
+/** Settings that belong to the shop and are the same on every device (synced). */
+@Serializable
+data class ShopSettings(
+    val shopName: String = "ٹیلر ماسٹر",
+    val shopPhone: String = "",
+    val shopAddress: String = "",
+    val receiptHeading: String = "",
+    val footer: String = "",
+    val terms: String = "",
+    val deliveryTerms: String = "",
+    val showLogo: Boolean = true,
+    val showFatherName: Boolean = false,
+    val showAddress: Boolean = false,
+    val showMeasurementsOnBooking: Boolean = false,
+    val showTerms: Boolean = true,
+    val showSignature: Boolean = true,
+    val copyType: String = "کسٹمر کاپی",
+    val currencyLabel: String = "روپے",
+    val dateFormat: String = "dd/MM/yyyy",
+    val urduDigits: Boolean = false,
+    val defaultUnit: String = "انچ",
+    val dueSoonDays: Int = 1,
+) {
+    fun applyTo(a: AppSettings) = a.copy(shopName = shopName, shopPhone = shopPhone, shopAddress = shopAddress,
+        receiptHeading = receiptHeading, footer = footer, terms = terms, deliveryTerms = deliveryTerms, showLogo = showLogo,
+        showFatherName = showFatherName, showAddress = showAddress, showMeasurementsOnBooking = showMeasurementsOnBooking,
+        showTerms = showTerms, showSignature = showSignature, copyType = copyType, currencyLabel = currencyLabel,
+        dateFormat = dateFormat, urduDigits = urduDigits, defaultUnit = defaultUnit, dueSoonDays = dueSoonDays)
+
+    companion object {
+        fun of(a: AppSettings) = ShopSettings(a.shopName, a.shopPhone, a.shopAddress, a.receiptHeading, a.footer, a.terms,
+            a.deliveryTerms, a.showLogo, a.showFatherName, a.showAddress, a.showMeasurementsOnBooking, a.showTerms,
+            a.showSignature, a.copyType, a.currencyLabel, a.dateFormat, a.urduDigits, a.defaultUnit, a.dueSoonDays)
+    }
+}
+
+class SettingsStore(context: Context, name: String = "tailor_settings") {
+    private val prefs = context.getSharedPreferences(name, Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     private val _state = MutableStateFlow(load())
@@ -67,8 +109,21 @@ class SettingsStore(context: Context) {
         AppSettings()
     }
 
+    /** Called when shop-level settings change on this device (the cloud sync pushes them). */
+    @Volatile var onShopChanged: ((ShopSettings) -> Unit)? = null
+
     fun update(f: (AppSettings) -> AppSettings) {
-        val n = f(_state.value)
+        val old = _state.value
+        val n = f(old)
+        save(n)
+        val shop = ShopSettings.of(n)
+        if (shop != ShopSettings.of(old)) onShopChanged?.invoke(shop)
+    }
+
+    /** Applies settings received from the cloud without sending them back. */
+    fun applyRemoteShop(shop: ShopSettings) { save(shop.applyTo(_state.value)) }
+
+    private fun save(n: AppSettings) {
         prefs.edit().putString(KEY, json.encodeToString(AppSettings.serializer(), n)).apply()
         _state.value = n
     }

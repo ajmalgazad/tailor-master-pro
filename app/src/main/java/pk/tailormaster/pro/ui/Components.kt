@@ -79,6 +79,7 @@ import java.util.Calendar
 
 val LocalRepo = staticCompositionLocalOf<Repository> { error("no repo") }
 val LocalPrinter = staticCompositionLocalOf<PrinterManager> { error("no printer") }
+val LocalSync = staticCompositionLocalOf<pk.tailormaster.pro.sync.SyncManager?> { null }
 
 // ------------------------------------------------------------------ messages
 enum class MsgType { OK, WARN, ERROR }
@@ -399,9 +400,9 @@ fun CustomerPicker(onDismiss: () -> Unit, onPick: (Customer) -> Unit) {
 fun matchesCustomer(c: Customer, q: String): Boolean {
     if (q.isBlank()) return true
     val t = pk.tailormaster.pro.domain.Digits.toLatin(q.trim()).lowercase()
-    val code = "c-" + c.id.toString().padStart(4, '0')
+    val code = pk.tailormaster.pro.data.DeviceIds.code("C", c.id, 4).lowercase()
     return c.name.lowercase().contains(t) || c.mobile.contains(t) || c.whatsapp.contains(t) || code.contains(t) ||
-        c.id.toString() == t || c.address.contains(t) || c.area.contains(t) || c.city.contains(t) || c.fatherName.contains(t)
+        c.id.toString() == t || pk.tailormaster.pro.data.DeviceIds.parse(t) == c.id || c.address.contains(t) || c.area.contains(t) || c.city.contains(t) || c.fatherName.contains(t)
 }
 
 @Composable

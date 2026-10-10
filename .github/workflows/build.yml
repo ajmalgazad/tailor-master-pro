@@ -95,6 +95,16 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest
 
+      - name: Start Firebase emulator (auth + firestore) for sync tests
+        run: |
+          npm install -g firebase-tools@13.35.1
+          nohup firebase emulators:start --only auth,firestore --project demo-tailor > firebase-emulator.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -s localhost:9099 >/dev/null && curl -s localhost:8080 >/dev/null; then echo "emulator up"; break; fi
+            sleep 2
+          done
+          tail -5 firebase-emulator.log
+
       - name: Run tests on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -109,6 +119,7 @@ jobs:
         if: always()
         run: |
           mkdir -p device-out
+          cp firebase-emulator.log device-out/ 2>/dev/null || true
           cd device-out
           git init -q
           git config user.name "ci"

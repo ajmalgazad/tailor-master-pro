@@ -63,10 +63,20 @@ fun HomeScreen() {
         MenuItem(14, "بیک اپ اور سیٹنگز", Color(0xFF455A64)) { Screen.Settings },
     )
 
+    val syncStatus = LocalSync.current?.status?.collectAsState()?.value
     Page(s.shopName.ifBlank { "ٹیلر ماسٹر پرو" }, showBack = false, actions = {
         IconButton(onClick = { nav.go(Screen.Settings) }) { Icon(Icons.Default.Settings, "سیٹنگز") }
     }) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (syncStatus != null && syncStatus.signedIn) item {
+                Text(
+                    (if (syncStatus.error) "☁ سنک میں مسئلہ: " + syncStatus.message
+                    else "☁ کلاؤڈ سے جڑا ہوا" + (if (syncStatus.lastSync > 0) " • آخری رابطہ " + Fmt.dateTime(syncStatus.lastSync) else " • انٹرنیٹ کا انتظار")),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (syncStatus.error) Semantic.bad else Semantic.ok,
+                    modifier = Modifier.clickable { nav.go(Screen.Cloud) },
+                )
+            }
             item {
                 val days = if (s.lastBackupAt == 0L) -1 else ((System.currentTimeMillis() - s.lastBackupAt) / Dates.DAY).toInt()
                 if (days == -1 || days >= 7) {

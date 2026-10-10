@@ -131,7 +131,13 @@ data class Dashboard(
 )
 
 class Repository(private val db: AppDatabase, val settings: SettingsStore) {
-    private val dao = db.dao()
+    /** Every write goes through the tracking DAO so it can be synced. */
+    private val dao: TailorDao = TrackingDao(db.dao(), db)
+
+    /** Set by the cloud sync: receives the changes of each committed transaction. */
+    @Volatile var onCommitted: ((List<Change>) -> Unit)? = null
+
+    init { DeviceIds.device = settings.value.deviceNo }
 
     private val _version = MutableStateFlow(0L)
     /** Increments after every write so screens know to reload. */
@@ -139,10 +145,20 @@ class Repository(private val db: AppDatabase, val settings: SettingsStore) {
     fun bump() { _version.value = _version.value + 1 }
 
     private suspend fun <T> io(block: () -> T): T = withContext(Dispatchers.IO) { block() }
-    private suspend fun <T> write(block: () -> T): T = withContext(Dispatchers.IO) {
-        val r = db.runInTransaction<T> { block() }
-        bump()
-        r
+    private suspend fun <T> write(block: () -> T): T = withContext(Dispatchers.IO) { tx(block) }
+
+    /** Blocking transaction with change tracking (call on a background thread). */
+    internal fun <T> tx(block: () -> T): T {
+        Changes.begin()
+        try {
+            val r = db.runInTransaction<T> { block() }
+            val changes = Changes.take()
+            if (changes.isNotEmpty()) onCommitted?.invoke(changes)
+            bump()
+            return r
+        } finally {
+            Changes.clear()
+        }
     }
 
     private fun audit(entity: String, id: Long, action: String, detail: String = "") {
@@ -151,9 +167,7 @@ class Repository(private val db: AppDatabase, val settings: SettingsStore) {
 
     // =============== First launch ===============
     suspend fun seedIfNeeded() = io {
-        if (dao.garmentCount() == 0) {
-            db.runInTransaction(Runnable { Seed.insertDefaults(dao) })
-        }
+        if (dao.garmentCount() == 0) tx { Seed.insertDefaults(dao) }
     }.also { bump() }
 
     // =============== Customers ===============
@@ -773,6 +787,6 @@ class Repository(private val db: AppDatabase, val settings: SettingsStore) {
 
 /** Number formats without depending on UI settings (used inside stored text). */
 object Fmt2 {
-    fun orderNo(id: Long) = "B-" + id.toString().padStart(5, '0')
-    fun txnNo(id: Long) = "T-" + id.toString().padStart(5, '0')
+    fun orderNo(id: Long) = DeviceIds.code("B", id, 5)
+    fun txnNo(id: Long) = DeviceIds.code("T", id, 5)
 }
