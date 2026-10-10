@@ -95,6 +95,13 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest
 
+      - name: Build web app for the phone <-> web sync test
+        run: |
+          cd web
+          npm ci
+          npm run build
+          npx playwright@1.48.2 install --with-deps chromium
+
       - name: Start Firebase emulator (auth + firestore) for sync tests
         run: |
           npm install -g firebase-tools@13.35.1
@@ -104,6 +111,11 @@ jobs:
             sleep 2
           done
           tail -5 firebase-emulator.log
+
+      - name: Web creates a shop with sample data (Firebase emulator)
+        run: |
+          cd web && (nohup npx vite preview --port 4173 --strictPort > ../vite.log 2>&1 &) && sleep 4 && cd ..
+          node web/tests/cloud.mjs setup web-creds.json
 
       - name: Run tests on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -115,11 +127,15 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: bash .github/device-test.sh
 
+      - name: Web shows the payment made on the phone
+        run: node web/tests/cloud.mjs verify web-creds.json 2>&1 | tee device-out/web-verify.txt
+
       - name: Publish device results to ci-device branch
         if: always()
         run: |
           mkdir -p device-out
           cp firebase-emulator.log device-out/ 2>/dev/null || true
+          cp web-*-fail.png device-out/ 2>/dev/null || true
           cd device-out
           git init -q
           git config user.name "ci"
@@ -133,3 +149,30 @@ jobs:
         run: |
           grep -q "FAILURES!!!\|Process crashed\|INSTRUMENTATION_FAILED" device-out/instrument.txt && exit 1
           grep -q "^OK (" device-out/instrument.txt
+
+  deploy-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build web app
+        run: cd web && npm ci && npm run build
+
+      - name: Publish website + web app to gh-pages
+        run: |
+          mkdir public
+          cp -r site/* public/
+          cp -r web/dist public/app
+          touch public/.nojekyll
+          cd public
+          git init -q -b gh-pages
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Website and web app (run ${{ github.run_number }})"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
