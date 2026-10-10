@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pk.tailormaster.pro.I18nTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-10T19:49:31.704Z" hostname="runnervmmprz5" time="0.029">
+  <properties/>
+  <testcase name="urduModeLeavesTextAlone" classname="pk.tailormaster.pro.I18nTest" time="0.0"/>
+  <testcase name="namesStayAsWritten" classname="pk.tailormaster.pro.I18nTest" time="0.01"/>
+  <testcase name="exactAndTemplates" classname="pk.tailormaster.pro.I18nTest" time="0.006"/>
+  <testcase name="piecesAndPhrases" classname="pk.tailormaster.pro.I18nTest" time="0.008"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pk.tailormaster.pro.CalcTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-10T19:49:31.338Z" hostname="runnervmmprz5" time="0.104">
+  <properties/>
+  <testcase name="percentDiscount_roundsHalfUp" classname="pk.tailormaster.pro.CalcTest" time="0.026"/>
+  <testcase name="parseMoney_handlesUrduDigitsCommasDecimals" classname="pk.tailormaster.pro.CalcTest" time="0.016"/>
+  <testcase name="ledger_paymentsReduceBalance_refundsIncrease_reversalUndoes" classname="pk.tailormaster.pro.CalcTest" time="0.034"/>
+  <testcase name="formatting" classname="pk.tailormaster.pro.CalcTest" time="0.014"/>
+  <testcase name="lineTotal_isQuantityTimesRate" classname="pk.tailormaster.pro.CalcTest" time="0.003"/>
+  <testcase name="validation_rejectsNegativesAndBadDiscount" classname="pk.tailormaster.pro.CalcTest" time="0.0"/>
+  <testcase name="example_order_2ShalwarKameez_1Waistcoat_1Trouser" classname="pk.tailormaster.pro.CalcTest" time="0.0"/>
+  <testcase name="discountNeverExceedsSubtotal" classname="pk.tailormaster.pro.CalcTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
