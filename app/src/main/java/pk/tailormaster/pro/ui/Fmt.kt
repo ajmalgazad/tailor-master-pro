@@ -28,4 +28,6 @@ object Fmt {
     fun txnNo(id: Long) = code("T", id, 5)
     fun profileCode(id: Long) = code("P", id, 4)
     fun deliveryNo(id: Long) = code("D", id, 5)
+    fun workerCode(id: Long) = code("K", id, 3)
+    fun jobNo(id: Long) = code("J", id, 5)
 }

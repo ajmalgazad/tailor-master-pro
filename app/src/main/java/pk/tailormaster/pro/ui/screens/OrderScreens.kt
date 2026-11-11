@@ -113,6 +113,10 @@ fun OrderDetailScreen(id: Long) {
     var cancelAsk by remember { mutableStateOf(false) }
     var notesEdit by remember { mutableStateOf(false) }
     var statusAsk by remember { mutableStateOf<String?>(null) }
+    val jobs by load(id) { workers.jobsForOrder(id) }
+    val workerNames by load { workers.allWorkers().associate { it.id to it.name } }
+    var assignFor by remember { mutableStateOf<pk.tailormaster.pro.data.OrderItem?>(null) }
+    var cancelJob by remember { mutableStateOf<pk.tailormaster.pro.data.WorkJob?>(null) }
 
     Page("آرڈر " + Fmt.orderNo(id)) { pad ->
         val full = f ?: return@Page
@@ -159,6 +163,11 @@ fun OrderDetailScreen(id: Long) {
                             })
                         }
                         if (it.delivered) Text("ڈیلیور: " + Fmt.dateTime(it.deliveredAt), style = MaterialTheme.typography.bodySmall, color = Semantic.ok)
+                        val itemJobs = (jobs ?: emptyList()).filter { j -> j.itemId == it.id && j.status != pk.tailormaster.pro.data.JobStatus.CANCELLED }
+                        itemJobs.forEach { j -> JobCard(j, showWorker = workerNames?.get(j.workerId) ?: "-", onCancel = { cancelJob = j }) }
+                        if (!it.delivered && o.status != OrderStatus.CANCELLED) {
+                            SmallButton("+ کاریگر کو دیں", Modifier.fillMaxWidth()) { assignFor = it }
+                        }
                         HorizontalDivider()
                     }
                 }
@@ -242,6 +251,14 @@ fun OrderDetailScreen(id: Long) {
     }
     if (notesEdit) TextPrompt("اندرونی نوٹس", "نوٹ", f?.order?.internalNotes ?: "", onDismiss = { notesEdit = false }) { t ->
         scope.act("نوٹ محفوظ") { repo.saveInternalNotes(id, t) }
+    }
+    assignFor?.let { item ->
+        AssignJobDialog(item, onDismiss = { assignFor = null }) { jid -> nav.go(Screen.Preview(pk.tailormaster.pro.data.ReceiptKind.WORKER_SLIP, jid)) }
+    }
+    cancelJob?.let { j ->
+        TextPrompt("کام منسوخ کریں", "وجہ (مثلاً کپڑا واپس لے لیا)", onDismiss = { cancelJob = null }) { r ->
+            scope.act("کام منسوخ ہو گیا") { repo.workers.cancel(j.id, r.ifBlank { "منسوخ" }) }
+        }
     }
 }
 

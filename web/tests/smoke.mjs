@@ -10,6 +10,9 @@ const shot = async n => { await page.waitForTimeout(400); await page.screenshot(
 const click = async (t, opts = {}) => { await page.locator('.main').getByRole('button', { name: t, exact: opts.exact ?? false }).first().click(); await page.waitForTimeout(250) }
 
 await page.goto('http://localhost:4173/')
+await page.waitForSelector('text=ڈیمو')
+const demoBtn = page.getByRole('button', { name: 'بغیر اکاؤنٹ ڈیمو آزمائیں' })
+if (await demoBtn.count()) await demoBtn.click()
 await page.waitForSelector('text=ڈیمو موڈ')
 await shot('01_home_empty')
 // add sample data

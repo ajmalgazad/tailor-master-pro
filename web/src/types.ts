@@ -20,15 +20,20 @@ export interface Delivery { id: number; orderId: number; date: number; itemIdsJs
 export interface Expense { id: number; date: number; category: string; amount: number; method: string; notes: string; voided: boolean; sample: boolean }
 export interface PrintLog { id: number; kind: string; refId: number; title: string; at: number; status: string; message: string }
 export interface AuditLog { id: number; at: number; entity: string; entityId: number; action: string; detail: string }
+// Kaarigar (workers) — same as data/Workers.kt
+export interface Worker { id: number; name: string; mobile: string; cnic: string; skills: string; address: string; notes: string; active: boolean; sample: boolean; createdAt: number }
+export interface WorkJob { id: number; workerId: number; orderId: number; itemId: number; garmentName: string; memberName: string; task: string; qty: number; wage: number; amount: number; assignedAt: number; dueDate: number | null; status: string; doneAt: number | null; notes: string }
+export interface WorkerPayment { id: number; workerId: number; date: number; type: string; amount: number; method: string; notes: string; voided: boolean; createdAt: number }
 
 export interface Tables {
   customers: Customer; members: FamilyMember; garments: Garment; fields: MeasurementField; profiles: MeasurementProfile
   customRates: CustomRate; rateHistory: RateHistory; services: ExtraService; orders: Order; items: OrderItem
   statusLogs: StatusLog; txns: Txn; deliveries: Delivery; expenses: Expense; printLogs: PrintLog; audits: AuditLog
+  workers: Worker; workJobs: WorkJob; workerPayments: WorkerPayment
 }
 export type Coll = keyof Tables
 export const COLLS: Coll[] = ['customers', 'members', 'garments', 'fields', 'profiles', 'customRates', 'rateHistory', 'services',
-  'orders', 'items', 'statusLogs', 'txns', 'deliveries', 'expenses', 'printLogs', 'audits']
+  'orders', 'items', 'statusLogs', 'txns', 'deliveries', 'expenses', 'printLogs', 'audits', 'workers', 'workJobs', 'workerPayments']
 
 /** Defaults so records written by older/newer app versions always have every field. */
 export const DEFAULTS: { [K in Coll]: Omit<Tables[K], 'id'> } = {
@@ -48,6 +53,19 @@ export const DEFAULTS: { [K in Coll]: Omit<Tables[K], 'id'> } = {
   expenses: { date: 0, category: '', amount: 0, method: 'نقد', notes: '', voided: false, sample: false },
   printLogs: { kind: '', refId: 0, title: '', at: 0, status: '', message: '' },
   audits: { at: 0, entity: '', entityId: 0, action: '', detail: '' },
+  workers: { name: '', mobile: '', cnic: '', skills: '', address: '', notes: '', active: true, sample: false, createdAt: 0 },
+  workJobs: { workerId: 0, orderId: 0, itemId: 0, garmentName: '', memberName: '', task: 'سلائی', qty: 1, wage: 0, amount: 0, assignedAt: 0, dueDate: null, status: 'ASSIGNED', doneAt: null, notes: '' },
+  workerPayments: { workerId: 0, date: 0, type: 'PAYMENT', amount: 0, method: 'نقد', notes: '', voided: false, createdAt: 0 },
+}
+
+export const JobStatus = {
+  ASSIGNED: 'ASSIGNED', DONE: 'DONE', CANCELLED: 'CANCELLED',
+  label: (s: string) => ({ ASSIGNED: 'کاریگر کے پاس', DONE: 'مکمل (واپس آ گیا)', CANCELLED: 'منسوخ' } as Record<string, string>)[s] ?? s,
+}
+export const WorkTasks = ['سلائی', 'کٹنگ', 'کڑھائی', 'کاج بٹن', 'فنشنگ / استری', 'آلٹریشن']
+export const WorkerPayType = {
+  PAYMENT: 'PAYMENT', ADVANCE: 'ADVANCE', all: ['PAYMENT', 'ADVANCE'],
+  label: (t: string) => ({ PAYMENT: 'مزدوری کی ادائیگی', ADVANCE: 'ایڈوانس' } as Record<string, string>)[t] ?? t,
 }
 
 export const Gender = {
@@ -80,7 +98,8 @@ export const ExpenseCategories = ['دکان کا کرایہ', 'بجلی کا ب�
 
 export const ReceiptKind = {
   BOOKING: 'BOOKING', MEASUREMENT: 'MEASUREMENT', PAYMENT: 'PAYMENT', DELIVERY: 'DELIVERY', LEDGER: 'LEDGER', CUSTOMER: 'CUSTOMER', TEST: 'TEST',
-  label: (k: string) => ({ BOOKING: 'بکنگ رسید', MEASUREMENT: 'ناپ کی پرچی', PAYMENT: 'وصولی رسید', DELIVERY: 'ڈیلیوری رسید', LEDGER: 'کھاتہ اسٹیٹمنٹ', CUSTOMER: 'کسٹمر معلومات', TEST: 'ٹیسٹ پرنٹ' } as Record<string, string>)[k] ?? k,
+  WORKER_SLIP: 'WORKER_SLIP', WORKER_PAYMENT: 'WORKER_PAYMENT', WORKER_LEDGER: 'WORKER_LEDGER',
+  label: (k: string) => ({ BOOKING: 'بکنگ رسید', MEASUREMENT: 'ناپ کی پرچی', PAYMENT: 'وصولی رسید', DELIVERY: 'ڈیلیوری رسید', LEDGER: 'کھاتہ اسٹیٹمنٹ', CUSTOMER: 'کسٹمر معلومات', TEST: 'ٹیسٹ پرنٹ', WORKER_SLIP: 'کاریگر کی پرچی', WORKER_PAYMENT: 'کاریگر ادائیگی کی پرچی', WORKER_LEDGER: 'کاریگر کا حساب' } as Record<string, string>)[k] ?? k,
 }
 
 /** Shop-level settings shared with the phone (Firestore meta/settings). */

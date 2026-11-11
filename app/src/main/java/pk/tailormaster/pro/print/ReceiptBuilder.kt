@@ -64,6 +64,9 @@ object ReceiptBuilder {
             ReceiptKind.LEDGER -> ledger(repo, s, refId)
             ReceiptKind.CUSTOMER -> customerInfo(repo, s, refId)
             ReceiptKind.TEST -> test(s)
+            ReceiptKind.WORKER_SLIP -> workerSlip(repo, s, refId)
+            ReceiptKind.WORKER_PAYMENT -> workerPayment(repo, s, refId)
+            ReceiptKind.WORKER_LEDGER -> workerLedger(repo, s, refId)
             else -> throw UserError("نامعلوم رسید")
         }
     }
@@ -292,6 +295,94 @@ object ReceiptBuilder {
         lines += RLine.Pair("موجودہ بقایا:", m(bal), true)
         lines += footer(s, false, false)
         return ReceiptDoc("کسٹمر " + c.name, lines)
+    }
+
+    /** Slip the kaarigar takes with the cloth: what to make, measurements, due date, wage. */
+    private suspend fun workerSlip(repo: Repository, s: AppSettings, jobId: Long): ReceiptDoc {
+        val j = repo.workers.job(jobId) ?: throw UserError("کام نہیں ملا")
+        val w = repo.workers.worker(j.workerId) ?: throw UserError("کاریگر نہیں ملا")
+        val f = repo.orderFull(j.orderId)
+        val item = f.items.firstOrNull { it.id == j.itemId }
+        val lines = mutableListOf<RLine>()
+        lines += RLine.Text(s.shopName, 1.2f, true, Align.CENTER)
+        lines += RLine.Band("کاریگر کی پرچی")
+        lines += RLine.Pair("پرچی نمبر:", Fmt.jobNo(j.id), true)
+        lines += RLine.Pair("کاریگر:", w.name, true)
+        lines += RLine.Pair("آرڈر نمبر:", Fmt.orderNo(j.orderId), true)
+        lines += RLine.Pair("دینے کی تاریخ:", Fmt.date(j.assignedAt))
+        lines += RLine.Pair("واپسی کی تاریخ:", Fmt.date(j.dueDate ?: f.order.deliveryDate), true)
+        if (f.order.urgent) lines += RLine.Text("★ ارجنٹ ★", 1f, true, Align.CENTER)
+        lines += RLine.Divider()
+        lines += RLine.Text(j.task + ": " + j.garmentName + " × " + Fmt.num(j.qty), 1.15f, true)
+        lines += RLine.Pair("فرد:", j.memberName.ifBlank { item?.memberName ?: "-" })
+        val snap = item?.let { decodeSnapshot(it.measurementJson) }
+        if (snap == null || snap.values.isEmpty()) {
+            lines += RLine.Text("ناپ منسلک نہیں", 0.9f)
+        } else {
+            lines += RLine.Text(snap.profileName + " • " + snap.unit, 0.8f)
+            snap.values.filter { v -> v.value.isNotBlank() }.forEach { v -> lines += RLine.Pair(v.label, Fmt.d(v.value), false, 1.05f) }
+            if (snap.fitting.isNotBlank()) lines += RLine.Text("فٹنگ: " + snap.fitting, 0.9f)
+            if (snap.instructions.isNotBlank()) lines += RLine.Text("ہدایات: " + snap.instructions, 0.9f)
+        }
+        if (item != null && item.notes.isNotBlank()) lines += RLine.Text("نوٹ: " + item.notes, 0.9f)
+        if (f.order.instructions.isNotBlank()) lines += RLine.Text("آرڈر ہدایات: " + f.order.instructions, 0.9f)
+        if (j.notes.isNotBlank()) lines += RLine.Text("کاریگر کے لیے نوٹ: " + j.notes, 0.9f)
+        lines += RLine.Divider()
+        lines += RLine.Pair("مزدوری:", Fmt.moneyPlain(j.wage) + " × " + Fmt.num(j.qty) + " = " + m(j.amount), true)
+        lines += RLine.Space(20)
+        lines += RLine.Text("دستخط کاریگر: _____________________", 0.85f)
+        lines += RLine.Text("پرنٹ: " + Fmt.dateTime(System.currentTimeMillis()), 0.7f, false, Align.CENTER)
+        return ReceiptDoc("کاریگر کی پرچی " + Fmt.jobNo(j.id), lines)
+    }
+
+    private suspend fun workerPayment(repo: Repository, s: AppSettings, paymentId: Long): ReceiptDoc {
+        val p = repo.workers.payment(paymentId) ?: throw UserError("اندراج نہیں ملا")
+        val l = repo.workers.ledger(p.workerId)
+        val lines = mutableListOf<RLine>()
+        lines += header(s, "کاریگر ادائیگی کی پرچی", null)
+        lines += RLine.Pair("کاریگر:", l.worker.name + " (" + Fmt.workerCode(l.worker.id) + ")", true)
+        lines += RLine.Pair("تاریخ:", Fmt.dateTime(p.date))
+        lines += RLine.Pair("قسم:", pk.tailormaster.pro.data.WorkerPayType.label(p.type))
+        lines += RLine.Pair("طریقہ ادائیگی:", p.method)
+        lines += RLine.Pair("رقم:", m(p.amount), true, 1.2f)
+        if (p.notes.isNotBlank()) lines += RLine.Text("تفصیل: " + p.notes, 0.85f)
+        if (p.voided) lines += RLine.Text("یہ اندراج منسوخ ہو چکا ہے", 1f, true, Align.CENTER)
+        lines += RLine.Divider()
+        lines += RLine.Pair(if (l.balance >= 0) "کاریگر کی باقی مزدوری:" else "کاریگر کے ذمے ایڈوانس:", m(kotlin.math.abs(l.balance)), true)
+        lines += RLine.Space(20)
+        lines += RLine.Text("دستخط کاریگر: _____________________", 0.85f)
+        lines += footer(s, false, false)
+        return ReceiptDoc("کاریگر ادائیگی " + l.worker.name, lines)
+    }
+
+    private suspend fun workerLedger(repo: Repository, s: AppSettings, workerId: Long): ReceiptDoc {
+        val l = repo.workers.ledger(workerId)
+        val pending = repo.workers.jobsForWorker(workerId).filter { it.status == pk.tailormaster.pro.data.JobStatus.ASSIGNED }
+        val lines = mutableListOf<RLine>()
+        lines += header(s, "کاریگر کا حساب", null)
+        lines += RLine.Pair("کاریگر:", l.worker.name + " (" + Fmt.workerCode(l.worker.id) + ")", true)
+        if (l.worker.mobile.isNotBlank()) lines += RLine.Pair("موبائل:", Fmt.d(l.worker.mobile))
+        lines += RLine.Divider()
+        val shown = if (l.entries.size > 60) l.entries.takeLast(60) else l.entries
+        if (shown.size < l.entries.size) lines += RLine.Text("(صرف آخری ۶۰ اندراجات)", 0.8f)
+        shown.forEach { e ->
+            lines += RLine.Text(Fmt.date(e.date) + " — " + e.description, 0.85f)
+            val amt = when {
+                e.earned > 0 -> "+" + Fmt.moneyPlain(e.earned)
+                e.paid > 0 -> "−" + Fmt.moneyPlain(e.paid)
+                else -> "0"
+            }
+            lines += RLine.Pair(amt, "بیلنس " + Fmt.moneyPlain(e.balance), false, 0.85f)
+        }
+        lines += RLine.Divider()
+        lines += RLine.Pair(if (l.balance >= 0) "باقی مزدوری (دکان کے ذمے):" else "ایڈوانس (کاریگر کے ذمے):", m(kotlin.math.abs(l.balance)), true, 1.15f)
+        if (pending.isNotEmpty()) {
+            lines += RLine.Divider()
+            lines += RLine.Text("ابھی کاریگر کے پاس (${Fmt.num(pending.size)}):", 1f, true)
+            pending.forEach { lines += RLine.Pair(it.garmentName + " × " + Fmt.num(it.qty) + " / " + Fmt.orderNo(it.orderId), m(it.amount), false, 0.85f) }
+        }
+        lines += footer(s, false, false)
+        return ReceiptDoc("کاریگر حساب " + l.worker.name, lines)
     }
 
     fun test(s: AppSettings): ReceiptDoc {

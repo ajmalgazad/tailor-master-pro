@@ -5,10 +5,11 @@ import { store, normalize } from './store'
 
 const KEYS: Record<Coll, string> = { customers: 'customers', members: 'members', garments: 'garments', fields: 'fields', profiles: 'profiles',
   customRates: 'customRates', rateHistory: 'rateHistory', services: 'services', orders: 'orders', items: 'items', statusLogs: 'statusLogs',
-  txns: 'txns', deliveries: 'deliveries', expenses: 'expenses', printLogs: 'printLogs', audits: 'audits' }
+  txns: 'txns', deliveries: 'deliveries', expenses: 'expenses', printLogs: 'printLogs', audits: 'audits',
+  workers: 'workers', workJobs: 'workJobs', workerPayments: 'workerPayments' }
 
 export function exportBackup(): string {
-  const out: Record<string, unknown> = { app: 'TailorMasterPro', formatVersion: 1, dbVersion: 1, exportedAt: Date.now(), settings: { ...store.shop } }
+  const out: Record<string, unknown> = { app: 'TailorMasterPro', formatVersion: 1, dbVersion: 2, exportedAt: Date.now(), settings: { ...store.shop } }
   COLLS.forEach(c => { out[KEYS[c]] = store.list(c) })
   out.logoBase64 = store.logo ? store.logo.replace(/^data:image\/\w+;base64,/, '') : ''
   return JSON.stringify(out)
@@ -21,7 +22,7 @@ export function checkBackup(text: string): BackupCheck {
   try { d = JSON.parse(text) } catch { return { ok: false, errors: ['فائل درست بیک اپ نہیں ہے یا خراب ہے'], summary: [] } }
   const errors: string[] = []
   if (d.app !== 'TailorMasterPro') errors.push('یہ ٹیلر ماسٹر پرو کا بیک اپ نہیں ہے')
-  if (Number(d.formatVersion ?? 1) > 1 || Number(d.dbVersion ?? 1) > 1) errors.push('یہ بیک اپ ایپ کے نئے ورژن کا ہے۔ پہلے ایپ اپ ڈیٹ کریں')
+  if (Number(d.formatVersion ?? 1) > 1 || Number(d.dbVersion ?? 1) > 2) errors.push('یہ بیک اپ ایپ کے نئے ورژن کا ہے۔ پہلے ایپ اپ ڈیٹ کریں')
   const arr = (k: string) => (Array.isArray(d[k]) ? (d[k] as Record<string, unknown>[]) : [])
   const ids = (k: string) => new Set(arr(k).map(x => Number(x.id)))
   for (const [k, n] of [['customers', 'کسٹمرز'], ['members', 'فیملی ممبرز'], ['garments', 'کپڑے'], ['profiles', 'ناپ پروفائلز'], ['orders', 'آرڈرز'], ['items', 'آرڈر آئٹمز'], ['txns', 'لین دین']]) {
@@ -35,8 +36,12 @@ export function checkBackup(text: string): BackupCheck {
   if (arr('items').some(x => !o.has(Number(x.orderId)))) errors.push('کچھ آرڈر آئٹمز کا آرڈر موجود نہیں')
   if (arr('txns').some(x => !c.has(Number(x.customerId)) || (x.orderId != null && !o.has(Number(x.orderId))))) errors.push('کچھ لین دین کا ریکارڈ نامکمل ہے')
   if (arr('deliveries').some(x => !o.has(Number(x.orderId)))) errors.push('کچھ ڈیلیوریاں کا آرڈر موجود نہیں')
+  const w = ids('workers')
+  if (w.size !== arr('workers').length) errors.push('کاریگر میں ایک جیسے نمبر ملے')
+  if (arr('workJobs').some(x => !w.has(Number(x.workerId)) || !o.has(Number(x.orderId)))) errors.push('کچھ کاریگر کے کاموں کا ریکارڈ نامکمل ہے')
+  if (arr('workerPayments').some(x => !w.has(Number(x.workerId)) || Number(x.amount) < 0)) errors.push('کچھ کاریگر ادائیگیوں کا ریکارڈ نامکمل ہے')
   const summary: [string, number][] = [['کسٹمرز', arr('customers').length], ['فیملی ممبرز', arr('members').length], ['ناپ پروفائلز', arr('profiles').length],
-    ['کپڑوں کی اقسام', arr('garments').length], ['آرڈرز', arr('orders').length], ['لین دین', arr('txns').length], ['اخراجات', arr('expenses').length]]
+    ['کپڑوں کی اقسام', arr('garments').length], ['آرڈرز', arr('orders').length], ['لین دین', arr('txns').length], ['اخراجات', arr('expenses').length], ['کاریگر', arr('workers').length]]
   return { ok: errors.length === 0, errors, summary, data: d, exportedAt: Number(d.exportedAt ?? 0) }
 }
 

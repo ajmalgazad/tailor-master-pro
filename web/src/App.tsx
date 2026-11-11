@@ -14,6 +14,7 @@ import { Orders, OrderDetail, Deliveries, Deliver } from './ui/screens/Orders'
 import { Payments, Ledger, Expenses } from './ui/screens/Money'
 import { PrintCenter, Preview, Designer } from './ui/screens/Print'
 import { Reports, Report, Settings, ShopSettingsScreen, Backup, Audit } from './ui/screens/Admin'
+import { Workers, WorkerEdit, WorkerDetail } from './ui/screens/Workers'
 import type { ReportKey } from './reports'
 import type { OrderDraft } from './repo'
 
@@ -51,6 +52,9 @@ function Router({ s }: { s: Screen }) {
     case 'shopSettings': return <ShopSettingsScreen />
     case 'backup': return <Backup />
     case 'audit': return <Audit />
+    case 'workers': return <Workers />
+    case 'workerEdit': return <WorkerEdit id={p.id} />
+    case 'worker': return <WorkerDetail id={p.id} tab={p.tab} />
     default: return <Home />
   }
 }

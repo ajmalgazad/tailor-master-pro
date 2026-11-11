@@ -46,6 +46,7 @@ object SampleData {
             ),
             charges = listOf(Charge("کڑھائی", 50000)), discountInput = 200.0, advance = 200000))
         repo.setOrderStatus(o1, OrderStatus.STITCHING, true, "نمونہ")
+        repo.workers.addSample(o1)
 
         repo.saveOrder(OrderDraft(customerId = c2, memberId = self2.id, bookingDate = Dates.addDays(now, -10), deliveryDate = Dates.addDays(now, -2),
             urgent = true,
@@ -61,6 +62,7 @@ object SampleData {
         val dao = repo.rawDao()
         repo.tx {
             val ids = dao.sampleCustomerIds()
+            repo.workers.removeSampleInTx(if (ids.isEmpty()) emptyList() else dao.orderIdsOf(ids))
             if (ids.isNotEmpty()) {
                 val orderIds = dao.orderIdsOf(ids)
                 if (orderIds.isNotEmpty()) {

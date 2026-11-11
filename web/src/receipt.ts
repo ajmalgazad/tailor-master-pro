@@ -5,6 +5,8 @@ import { Q, decodeCharges, decodeIds, decodeSnapshot, decodeValues, UserError } 
 import { store } from './store'
 import { OrderStatus, ReceiptKind, TxnType } from './types'
 import type { LocalSettings } from './types'
+import { WQ } from './workers'
+import { JobStatus, WorkerPayType } from './types'
 
 type Align = 'start' | 'center' | 'end'
 export type RLine =
@@ -55,6 +57,9 @@ export function buildReceipt(kind: string, refId: number, copyLabel?: string): R
     case ReceiptKind.LEDGER: return ledger(refId)
     case ReceiptKind.CUSTOMER: return customerInfo(refId)
     case ReceiptKind.TEST: return test()
+    case ReceiptKind.WORKER_SLIP: return workerSlip(refId)
+    case ReceiptKind.WORKER_PAYMENT: return workerPayment(refId)
+    case ReceiptKind.WORKER_LEDGER: return workerLedger(refId)
     default: throw new UserError('نامعلوم رسید')
   }
 }
@@ -205,6 +210,69 @@ function customerInfo(customerId: number): ReceiptDoc {
   Q.members(customerId).filter(x => x.active).forEach(x => l.push(P(x.name, x.relation)))
   l.push(D(), P('موجودہ بقایا:', m(Q.balance(customerId)), true), ...footer(false, false))
   return { title: 'کسٹمر ' + c.name, lines: l }
+}
+
+/** Slip the kaarigar takes with the cloth: what to make, measurements, due date, wage. */
+function workerSlip(jobId: number): ReceiptDoc {
+  const j = WQ.job(jobId); if (!j) throw new UserError('کام نہیں ملا')
+  const w = WQ.worker(j.workerId); if (!w) throw new UserError('کاریگر نہیں ملا')
+  const f = Q.orderFull(j.orderId)
+  const item = f.items.find(i => i.id === j.itemId)
+  const l: RLine[] = [T(store.shop.shopName, 1.2, true, 'center'), { t: 'band', text: 'کاریگر کی پرچی' },
+    P('پرچی نمبر:', Fmt.jobNo(j.id), true), P('کاریگر:', w.name, true), P('آرڈر نمبر:', Fmt.orderNo(j.orderId), true),
+    P('دینے کی تاریخ:', Fmt.date(j.assignedAt)), P('واپسی کی تاریخ:', Fmt.date(j.dueDate ?? f.order.deliveryDate), true)]
+  if (f.order.urgent) l.push(T('★ ارجنٹ ★', 1, true, 'center'))
+  l.push(D(), T(j.task + ': ' + j.garmentName + ' × ' + Fmt.num(j.qty), 1.15, true), P('فرد:', j.memberName || item?.memberName || '-'))
+  const snap = item ? decodeSnapshot(item.measurementJson) : null
+  if (!snap || !snap.values.length) l.push(T('ناپ منسلک نہیں', 0.9))
+  else {
+    l.push(T(snap.profileName + ' • ' + snap.unit, 0.8))
+    snap.values.filter(v => v.value.trim()).forEach(v => l.push(P(v.label, Fmt.d(v.value), false, 1.05)))
+    if (snap.fitting.trim()) l.push(T('فٹنگ: ' + snap.fitting, 0.9))
+    if (snap.instructions.trim()) l.push(T('ہدایات: ' + snap.instructions, 0.9))
+  }
+  if (item?.notes.trim()) l.push(T('نوٹ: ' + item.notes, 0.9))
+  if (f.order.instructions.trim()) l.push(T('آرڈر ہدایات: ' + f.order.instructions, 0.9))
+  if (j.notes.trim()) l.push(T('کاریگر کے لیے نوٹ: ' + j.notes, 0.9))
+  l.push(D(), P('مزدوری:', Fmt.moneyPlain(j.wage) + ' × ' + Fmt.num(j.qty) + ' = ' + m(j.amount), true),
+    SP(20), T('دستخط کاریگر: _____________________', 0.85), T('پرنٹ: ' + Fmt.dateTime(Date.now()), 0.7, false, 'center'))
+  return { title: 'کاریگر کی پرچی ' + Fmt.jobNo(j.id), lines: l }
+}
+
+function workerPayment(id: number): ReceiptDoc {
+  const p = WQ.payment(id); if (!p) throw new UserError('اندراج نہیں ملا')
+  const lg = WQ.ledger(p.workerId)
+  const l: RLine[] = header('کاریگر ادائیگی کی پرچی', null)
+  l.push(P('کاریگر:', lg.worker.name + ' (' + Fmt.workerCode(lg.worker.id) + ')', true), P('تاریخ:', Fmt.dateTime(p.date)),
+    P('قسم:', WorkerPayType.label(p.type)), P('طریقہ ادائیگی:', p.method), P('رقم:', m(p.amount), true, 1.2))
+  if (p.notes.trim()) l.push(T('تفصیل: ' + p.notes, 0.85))
+  if (p.voided) l.push(T('یہ اندراج منسوخ ہو چکا ہے', 1, true, 'center'))
+  l.push(D(), P(lg.balance >= 0 ? 'کاریگر کی باقی مزدوری:' : 'کاریگر کے ذمے ایڈوانس:', m(Math.abs(lg.balance)), true),
+    SP(20), T('دستخط کاریگر: _____________________', 0.85), ...footer(false, false))
+  return { title: 'کاریگر ادائیگی ' + lg.worker.name, lines: l }
+}
+
+function workerLedger(workerId: number): ReceiptDoc {
+  const lg = WQ.ledger(workerId)
+  const pending = WQ.jobsForWorker(workerId).filter(j => j.status === JobStatus.ASSIGNED)
+  const l: RLine[] = header('کاریگر کا حساب', null)
+  l.push(P('کاریگر:', lg.worker.name + ' (' + Fmt.workerCode(lg.worker.id) + ')', true))
+  if (lg.worker.mobile.trim()) l.push(P('موبائل:', Fmt.d(lg.worker.mobile)))
+  l.push(D())
+  const shown = lg.entries.length > 60 ? lg.entries.slice(-60) : lg.entries
+  if (shown.length < lg.entries.length) l.push(T('(صرف آخری ۶۰ اندراجات)', 0.8))
+  shown.forEach(e => {
+    l.push(T(Fmt.date(e.date) + ' — ' + e.description, 0.85))
+    const amt = e.earned > 0 ? '+' + Fmt.moneyPlain(e.earned) : e.paid > 0 ? '−' + Fmt.moneyPlain(e.paid) : '0'
+    l.push(P(amt, 'بیلنس ' + Fmt.moneyPlain(e.balance), false, 0.85))
+  })
+  l.push(D(), P(lg.balance >= 0 ? 'باقی مزدوری (دکان کے ذمے):' : 'ایڈوانس (کاریگر کے ذمے):', m(Math.abs(lg.balance)), true, 1.15))
+  if (pending.length) {
+    l.push(D(), T(`ابھی کاریگر کے پاس (${Fmt.num(pending.length)}):`, 1, true))
+    pending.forEach(j => l.push(P(j.garmentName + ' × ' + Fmt.num(j.qty) + ' / ' + Fmt.orderNo(j.orderId), m(j.amount), false, 0.85)))
+  }
+  l.push(...footer(false, false))
+  return { title: 'کاریگر حساب ' + lg.worker.name, lines: l }
 }
 
 function test(): ReceiptDoc {

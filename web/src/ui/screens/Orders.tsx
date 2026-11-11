@@ -6,6 +6,11 @@ import type { OrderRow } from '../../repo'
 import { OrderStatus, PayMethod, ReceiptKind, TxnType } from '../../types'
 import { act, msg, Btn, Chip, Confirm, DateInput, Empty, Input, KV, MoneyInput, Page, Prompt, Row, SearchBox, Section, Select, statusTone, Switch, Tabs, useNav, useStoreVersion } from '../kit'
 import { OrderRowCard } from './Customers'
+import { AssignJobDialog, JobCard } from './Workers'
+import { WQ } from '../../workers'
+import { JobStatus } from '../../types'
+import type { OrderItem, WorkJob } from '../../types'
+import { WR } from '../../workers'
 
 const quick: [string, string][] = [['all', 'تمام'], ['today', 'آج کی بکنگ'], ['due_today', 'آج ڈیلیوری'], ['open', 'جاری'], ['ready', 'تیار'], ['overdue', 'تاخیر'],
   ['urgent', 'ارجنٹ'], ['draft', 'ڈرافٹ'], ['delivered', 'ڈیلیور شدہ'], ['cancelled', 'منسوخ']]
@@ -63,11 +68,14 @@ export function OrderDetail({ id }: { id: number }) {
   const [cancel, setCancel] = useState(false)
   const [notes, setNotes] = useState(false)
   const [ask, setAsk] = useState<string | null>(null)
+  const [assignFor, setAssignFor] = useState<OrderItem | null>(null)
+  const [cancelJob, setCancelJob] = useState<WorkJob | null>(null)
   let f
   try { f = Q.orderFull(id) } catch { return <Page title={'آرڈر ' + Fmt.orderNo(id)}><Empty text="آرڈر نہیں ملا" /></Page> }
   const o = f.order
   const anyDelivered = f.items.some(i => i.delivered)
   const closed = o.status === 'CANCELLED' || o.status === 'DELIVERED'
+  const jobs = WQ.jobsForOrder(id)
   return <Page title={'آرڈر ' + Fmt.orderNo(id)}>
     <div className="two-col">
       <div className="col">
@@ -92,6 +100,8 @@ export function OrderDetail({ id }: { id: number }) {
               {!it.delivered && !closed && !o.isDraft && <Select label="اس کپڑے کا اسٹیٹس" options={OrderStatus.workflow.filter(s => s !== 'DELIVERED')} value={it.status} labelOf={OrderStatus.label}
                 onChange={s => act(() => R.setItemStatus(it.id, s), 'اسٹیٹس تبدیل')} />}
               {it.delivered && <p className="ok small">ڈیلیور: {Fmt.dateTime(it.deliveredAt)}</p>}
+              {jobs.filter(j => j.itemId === it.id && j.status !== JobStatus.CANCELLED).map(j => <JobCard key={j.id} j={j} worker={WQ.worker(j.workerId)?.name ?? '-'} onCancel={() => setCancelJob(j)} />)}
+              {!it.delivered && o.status !== 'CANCELLED' && <Btn small kind="ghost" onClick={() => setAssignFor(it)}>+ کاریگر کو دیں</Btn>}
             </div> })}
         </Section>
       </div>
@@ -135,6 +145,8 @@ export function OrderDetail({ id }: { id: number }) {
       onOk={() => act(() => R.setOrderStatus(id, ask, true), 'اسٹیٹس تبدیل ہو گیا')} />}
     {cancel && <Prompt title="آرڈر منسوخ کریں" label="منسوخی کی وجہ" onClose={() => setCancel(false)} onOk={r => act(() => R.cancelOrder(id, r.trim() || 'منسوخ'), 'آرڈر منسوخ ہو گیا')} />}
     {notes && <Prompt title="اندرونی نوٹس" label="نوٹ" initial={o.internalNotes} onClose={() => setNotes(false)} onOk={t => act(() => R.saveInternalNotes(id, t), 'نوٹ محفوظ')} />}
+    {assignFor && <AssignJobDialog item={assignFor} onClose={() => setAssignFor(null)} onSaved={jid => nav.go({ name: 'preview', kind: ReceiptKind.WORKER_SLIP, refId: jid })} />}
+    {cancelJob && <Prompt title="کام منسوخ کریں" label="وجہ (مثلاً کپڑا واپس لے لیا)" onClose={() => setCancelJob(null)} onOk={r => act(() => WR.cancel(cancelJob.id, r.trim() || 'منسوخ'), 'کام منسوخ ہو گیا')} />}
   </Page>
 }
 

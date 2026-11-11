@@ -128,6 +128,27 @@ class ScreenshotTest {
         }
     }
 
+    /** Kaarigar screens and slips (sample data has two workers). */
+    @Test fun workerScreens() {
+        ensureSample()
+        val repo = app.repo
+        val (wid, jid, oid) = runBlocking {
+            val w = repo.workers.rows(true).first { it.pendingJobs > 0 }.worker.id
+            val j = repo.workers.jobsForWorker(w).first()
+            Triple(w, j.id, j.orderId)
+        }
+        go("40_workers", Screen.Workers)
+        go("41_worker_detail", Screen.WorkerDetail(wid))
+        go("42_worker_ledger_tab", Screen.WorkerDetail(wid, 2))
+        go("43_order_with_jobs", Screen.OrderDetail(oid))
+        go("44_worker_slip_preview", Screen.Preview(ReceiptKind.WORKER_SLIP, jid))
+        runBlocking {
+            val s = repo.settings.value.copy(paperWidthMm = 58, printableDots = 384, receiptFont = "naskh")
+            save("receipt_worker_slip", ReceiptRenderer.render(app, ReceiptBuilder.build(repo, ReceiptKind.WORKER_SLIP, jid), s))
+            save("receipt_worker_ledger", ReceiptRenderer.render(app, ReceiptBuilder.build(repo, ReceiptKind.WORKER_LEDGER, wid), s))
+        }
+    }
+
     @Test fun renderAllReceipts() {
         ensureSample()
         val repo = app.repo

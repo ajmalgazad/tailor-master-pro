@@ -54,6 +54,8 @@ android {
     sourceSets {
         // English dictionary shared with the web version (i18n/en.json -> assets/en.json)
         getByName("main").assets.srcDirs("src/main/assets", "../i18n")
+        // database schemas, so the migration test can rebuild the old (v1) database
+        getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -98,5 +100,6 @@ dependencies {
     androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    androidTestImplementation("androidx.room:room-testing:2.6.1")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

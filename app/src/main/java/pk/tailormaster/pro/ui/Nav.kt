@@ -40,6 +40,9 @@ sealed class Screen {
     object AuditLog : Screen()
     object Merge : Screen()
     object Cloud : Screen()
+    object Workers : Screen()
+    data class WorkerEdit(val id: Long? = null) : Screen()
+    data class WorkerDetail(val id: Long, val tab: Int = 0) : Screen()
 }
 
 class Navigator {

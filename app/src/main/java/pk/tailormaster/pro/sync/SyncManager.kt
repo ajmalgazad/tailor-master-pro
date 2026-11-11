@@ -252,7 +252,6 @@ class SyncManager(
     @Suppress("UNCHECKED_CAST")
     private fun applyRemote(table: SyncTable<*>, docs: List<DocumentSnapshot>) {
         val t = table as SyncTable<Any>
-        val raw = db.dao()
         var newest = repo.settings.value.lastPull
         try {
             db.runInTransaction(Runnable {
@@ -263,7 +262,7 @@ class SyncManager(
                     if (data["_del"] == true) {
                         w.execSQL("DELETE FROM ${t.table} WHERE id = ?", arrayOf<Any>(id))
                     } else {
-                        t.upsert(raw, t.fromJson(SyncSchema.fromMap(data)))
+                        t.upsert(db, t.fromJson(SyncSchema.fromMap(data)))
                     }
                     doc.getTimestamp("_s")?.let { ts -> newest = maxOf(newest, ts.toDate().time) }
                 }
@@ -304,6 +303,8 @@ class SyncManager(
         add(SyncSchema.items, raw.allItems()); add(SyncSchema.statusLogs, raw.allStatusLogs()); add(SyncSchema.txns, raw.txns())
         add(SyncSchema.deliveries, raw.allDeliveries()); add(SyncSchema.expenses, raw.expenses()); add(SyncSchema.printLogs, raw.allPrintLogs())
         add(SyncSchema.audits, raw.allAudits())
+        val wd = db.workerDao()
+        add(SyncSchema.workers, wd.workers()); add(SyncSchema.workJobs, wd.jobs()); add(SyncSchema.workerPayments, wd.payments())
         push(all)
         all.size
     }

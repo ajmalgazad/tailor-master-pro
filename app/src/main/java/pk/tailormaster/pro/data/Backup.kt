@@ -27,6 +27,9 @@ data class BackupData(
     val expenses: List<Expense> = emptyList(),
     val printLogs: List<PrintLog> = emptyList(),
     val audits: List<AuditLog> = emptyList(),
+    val workers: List<Worker> = emptyList(),
+    val workJobs: List<WorkJob> = emptyList(),
+    val workerPayments: List<WorkerPayment> = emptyList(),
     /** Shop logo image (PNG) as Base64, so the logo moves to a new phone too. */
     val logoBase64: String = "",
 )
@@ -39,6 +42,7 @@ object BackupManager {
 
     suspend fun export(repo: Repository, logoBase64: String = ""): String = withContext(Dispatchers.IO) {
         val dao = repo.rawDao()
+        val wd = repo.workers.rawDao()
         val data = repo.rawDb().runInTransaction<BackupData> {
             BackupData(
                 settings = repo.settings.value,
@@ -48,6 +52,7 @@ object BackupManager {
                 items = dao.allItems(), statusLogs = dao.allStatusLogs(), txns = dao.txns(),
                 deliveries = dao.allDeliveries(), expenses = dao.expenses(), printLogs = dao.allPrintLogs(),
                 audits = dao.allAudits(),
+                workers = wd.workers(), workJobs = wd.jobs(), workerPayments = wd.payments(),
                 logoBase64 = logoBase64,
             )
         }
@@ -89,11 +94,16 @@ object BackupManager {
         if (data.deliveries.any { it.orderId !in oIds }) errors += "کچھ ڈیلیوریز کا آرڈر موجود نہیں"
         if (data.items.any { it.qty <= 0 || it.rate < 0 }) errors += "کچھ آرڈر آئٹمز میں غلط تعداد یا ریٹ"
         if (data.txns.any { it.amount < 0 }) errors += "کچھ لین دین میں منفی رقم"
+        uniq("کاریگر", data.workers) { it.id }
+        val wIds = data.workers.map { it.id }.toSet()
+        if (data.workJobs.any { it.workerId !in wIds || it.orderId !in oIds }) errors += "کچھ کاریگر کے کاموں کا ریکارڈ نامکمل ہے"
+        if (data.workerPayments.any { it.workerId !in wIds || it.amount < 0 }) errors += "کچھ کاریگر ادائیگیوں کا ریکارڈ نامکمل ہے"
 
         val summary = listOf(
             "کسٹمرز" to data.customers.size, "فیملی ممبرز" to data.members.size,
             "ناپ پروفائلز" to data.profiles.size, "کپڑوں کی اقسام" to data.garments.size,
             "آرڈرز" to data.orders.size, "لین دین" to data.txns.size, "اخراجات" to data.expenses.size,
+            "کاریگر" to data.workers.size,
         )
         return BackupCheck(data, errors, summary)
     }
@@ -101,7 +111,9 @@ object BackupManager {
     /** Replaces ALL data with the backup, inside one transaction (all-or-nothing). */
     suspend fun restore(repo: Repository, data: BackupData) = withContext(Dispatchers.IO) {
         val dao = repo.rawDao()
+        val wd = repo.workers.rawDao()
         repo.tx {
+            wd.clearPayments(); wd.clearJobs(); wd.clearWorkers()
             dao.clearAudits(); dao.clearPrintLogs(); dao.clearExpenses(); dao.clearDeliveries(); dao.clearTxns()
             dao.clearStatusLogs(); dao.clearItems(); dao.clearOrders(); dao.clearServices(); dao.clearRateHistory()
             dao.clearRates(); dao.clearProfiles(); dao.clearFields(); dao.clearGarments(); dao.clearMembers(); dao.clearCustomers()
@@ -111,6 +123,7 @@ object BackupManager {
             dao.insertItems(data.items); dao.insertStatusLogs(data.statusLogs); dao.insertTxns(data.txns)
             dao.insertDeliveries(data.deliveries); dao.insertExpenses(data.expenses); dao.insertPrintLogs(data.printLogs)
             dao.insertAudits(data.audits)
+            wd.insertWorkers(data.workers); wd.insertJobs(data.workJobs); wd.insertPayments(data.workerPayments)
             dao.insertAudit(AuditLog(entity = "backup", entityId = 0, action = "restore", detail = "exported ${data.exportedAt}"))
         }
         val cur = repo.settings.value

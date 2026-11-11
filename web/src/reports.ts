@@ -5,7 +5,8 @@ import { Fmt } from './fmt'
 import { Q, decodeValues } from './repo'
 import type { OrderRow } from './repo'
 import { store } from './store'
-import { OrderStatus, TxnType } from './types'
+import { JobStatus, OrderStatus, TxnType } from './types'
+import { WQ } from './workers'
 
 export interface ReportTable { title: string; subtitle: string; headers: string[]; rows: string[][]; totals?: string[]; csvRows?: string[][]; csvTotals?: string[] }
 export interface ReportFilter { from: number; to: number; customerId: number | null; garmentId: number | null; status: string | null }
@@ -23,6 +24,8 @@ export const REPORTS = [
   { key: 'EXPENSES', title: 'اخراجات رپورٹ', dates: true, customer: false, garment: false, status: false },
   { key: 'INCOME_EXPENSE', title: 'آمدن اور اخراجات کا خلاصہ', dates: true, customer: false, garment: false, status: false },
   { key: 'RATE_HISTORY', title: 'ریٹ ہسٹری رپورٹ', dates: true, customer: true, garment: true, status: false },
+  { key: 'WORKERS', title: 'کاریگر حساب رپورٹ', dates: true, customer: false, garment: false, status: false },
+  { key: 'WORKER_JOBS', title: 'کاریگروں کو دیا گیا کام', dates: true, customer: false, garment: true, status: false },
 ] as const
 export type ReportKey = typeof REPORTS[number]['key']
 
@@ -130,9 +133,36 @@ export function buildReport(k: ReportKey, f: ReportFilter): ReportTable {
       const revenue = sum(rows.filter(r => inRange(r.order.bookingDate) && r.order.status !== OrderStatus.CANCELLED).map(r => r.order.netAmount))
       const cash = -sum(store.list('txns').filter(t => t.cash && inRange(t.date)).map(t => t.signedEffect))
       const exp = sum(store.list('expenses').filter(e => !e.voided && inRange(e.date)).map(e => e.amount))
+      const wages = sum(store.list('workerPayments').filter(p => !p.voided && inRange(p.date)).map(p => p.amount))
       const out = sum(Array.from(Q.balances().values()).filter(v => v > 0))
-      const lines: [string, number][] = [['آرڈرز کی آمدن (بک شدہ کام)', revenue], ['نقد / رقم وصول ہوئی', cash], ['کاروباری اخراجات', exp], ['خالص نقد (وصولی − اخراجات)', cash - exp], ['کل بقایا (آج تک، تمام کسٹمرز)', out]]
+      const lines: [string, number][] = [['آرڈرز کی آمدن (بک شدہ کام)', revenue], ['نقد / رقم وصول ہوئی', cash], ['کاروباری اخراجات', exp], ['کاریگروں کو ادائیگی', wages], ['خالص نقد (وصولی − اخراجات − کاریگر)', cash - exp - wages], ['کل بقایا (آج تک، تمام کسٹمرز)', out]]
       return { title, subtitle: sub(true), headers: ['مد', 'رقم'], rows: lines.map(([a, b]) => [a, m(b)]), csvRows: lines.map(([a, b]) => [a, n(b)]) }
+    }
+    case 'WORKERS': {
+      const jobs = store.list('workJobs'), pays = store.list('workerPayments')
+      const data = WQ.rows(true).filter(r => r.worker.active || r.balance !== 0 || r.pendingJobs > 0).map(r => {
+        const done = jobs.filter(j => j.workerId === r.worker.id && j.status === JobStatus.DONE && inRange(j.doneAt ?? 0))
+        const paidIn = sum(pays.filter(p => p.workerId === r.worker.id && !p.voided && inRange(p.date)).map(p => p.amount))
+        return { name: r.worker.name, qty: sum(done.map(j => j.qty)), earned: sum(done.map(j => j.amount)), paid: paidIn, pending: r.pendingJobs, balance: r.balance }
+      })
+      const tot = (k: 'qty' | 'earned' | 'paid' | 'pending' | 'balance') => sum(data.map(d => d[k]))
+      return { title, subtitle: sub(true) + '\nبیلنس: مثبت = دکان کے ذمے مزدوری، منفی = کاریگر کے ذمے ایڈوانس',
+        headers: ['کاریگر', 'مکمل کپڑے', 'کمائی (اس عرصے)', 'ادائیگی (اس عرصے)', 'ابھی پاس کام', 'کل بیلنس'],
+        rows: data.map(d => [d.name, Fmt.num(d.qty), m(d.earned), m(d.paid), Fmt.num(d.pending), m(d.balance)]),
+        totals: ['کل', Fmt.num(tot('qty')), m(tot('earned')), m(tot('paid')), Fmt.num(tot('pending')), m(tot('balance'))],
+        csvRows: data.map(d => [d.name, String(d.qty), n(d.earned), n(d.paid), String(d.pending), n(d.balance)]),
+        csvTotals: ['TOTAL', String(tot('qty')), n(tot('earned')), n(tot('paid')), String(tot('pending')), n(tot('balance'))] }
+    }
+    case 'WORKER_JOBS': {
+      const names = new Map(store.list('workers').map(w => [w.id, w.name]))
+      const gName = f.garmentId != null ? garments.get(f.garmentId)?.name : undefined
+      const list = store.list('workJobs').filter(j => inRange(j.assignedAt) && (gName == null || j.garmentName === gName)).sort((a, b) => a.assignedAt - b.assignedAt)
+      const live = list.filter(j => j.status !== JobStatus.CANCELLED)
+      return { title, subtitle: sub(true), headers: ['تاریخ', 'کاریگر', 'آرڈر', 'کپڑا', 'کام', 'تعداد', 'مزدوری', 'رقم', 'حیثیت'],
+        rows: list.map(j => [Fmt.date(j.assignedAt), names.get(j.workerId) ?? '-', Fmt.orderNo(j.orderId), j.garmentName, j.task, Fmt.num(j.qty), m(j.wage), m(j.amount), JobStatus.label(j.status)]),
+        totals: ['کل: ' + Fmt.num(live.length), '', '', '', '', Fmt.num(sum(live.map(j => j.qty))), '', m(sum(live.map(j => j.amount))), ''],
+        csvRows: list.map(j => [iso(j.assignedAt), names.get(j.workerId) ?? '-', 'B-' + j.orderId, j.garmentName, j.task, String(j.qty), n(j.wage), n(j.amount), JobStatus.label(j.status)]),
+        csvTotals: ['TOTAL', '', '', '', '', String(sum(live.map(j => j.qty))), '', n(sum(live.map(j => j.amount))), ''] }
     }
     case 'RATE_HISTORY': {
       const list = store.list('rateHistory').filter(h => inRange(h.at) && (f.garmentId == null || h.garmentId === f.garmentId) && (f.customerId == null || h.customerId === f.customerId)).sort((a, b) => b.at - a.at)

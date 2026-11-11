@@ -15,11 +15,12 @@ export const MENU: { n: number; title: string; screen: string; color: string }[]
   { n: 7, title: 'نئی بکنگ', screen: 'booking', color: '#2e7d32' },
   { n: 8, title: 'آرڈر مینجمنٹ', screen: 'orders', color: '#283593' },
   { n: 9, title: 'ڈیلیوری مینجمنٹ', screen: 'deliveries', color: '#00695c' },
-  { n: 10, title: 'پیمنٹ اور کھاتہ', screen: 'payments', color: '#ad1457' },
-  { n: 11, title: 'اخراجات', screen: 'expenses', color: '#c62828' },
-  { n: 12, title: 'رسید پرنٹنگ', screen: 'printCenter', color: '#37474f' },
-  { n: 13, title: 'رپورٹس', screen: 'reports', color: '#4527a0' },
-  { n: 14, title: 'بیک اپ اور سیٹنگز', screen: 'settings', color: '#455a64' },
+  { n: 10, title: 'کاریگر', screen: 'workers', color: '#6d4c41' },
+  { n: 11, title: 'پیمنٹ اور کھاتہ', screen: 'payments', color: '#ad1457' },
+  { n: 12, title: 'اخراجات', screen: 'expenses', color: '#c62828' },
+  { n: 13, title: 'رسید پرنٹنگ', screen: 'printCenter', color: '#37474f' },
+  { n: 14, title: 'رپورٹس', screen: 'reports', color: '#4527a0' },
+  { n: 15, title: 'بیک اپ اور سیٹنگز', screen: 'settings', color: '#455a64' },
 ]
 
 function Stat({ title, value, tone, onClick }: { title: string; value: string; tone: string; onClick?: () => void }) {

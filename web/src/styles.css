@@ -182,3 +182,5 @@ b.ok, b.bad { font-variant-numeric: tabular-nums; }
 .side .lang-btns .btn { flex: 1; text-align: center; opacity: 1; }
 .side .lang-btns .btn.ghost { color: var(--teal-ink); border-color: rgba(255,255,255,.45); }
 .side .lang-btns .btn.primary { background: var(--gold); color: #1d1d1d; }
+
+.card.item.job { padding: 8px 10px; margin: 6px 0; background: color-mix(in srgb, var(--warn) 6%, var(--paper)); }

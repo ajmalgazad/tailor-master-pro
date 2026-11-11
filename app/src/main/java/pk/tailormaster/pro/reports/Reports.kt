@@ -41,6 +41,8 @@ enum class ReportKind(val title: String, val usesDates: Boolean, val usesCustome
     EXPENSES("اخراجات رپورٹ", true, false, false, false),
     INCOME_EXPENSE("آمدن اور اخراجات کا خلاصہ", true, false, false, false),
     RATE_HISTORY("ریٹ ہسٹری رپورٹ", true, true, true, false),
+    WORKERS("کاریگر حساب رپورٹ", true, false, false, false),
+    WORKER_JOBS("کاریگروں کو دیا گیا کام", true, false, true, false),
 }
 
 object Reports {
@@ -182,16 +184,53 @@ object Reports {
                 val revenue = booked.sumOf { it.order.netAmount }
                 val cash = -dao.txns().filter { it.cash && it.date in f.from..f.to }.sumOf { it.signedEffect }
                 val exp = dao.expenses().filter { !it.voided && it.date in f.from..f.to }.sumOf { it.amount }
+                val wages = repo.workers.rawDao().payments().filter { !it.voided && it.date in f.from..f.to }.sumOf { it.amount }
                 val outstanding = repo.balancesSync().values.filter { it > 0 }.sum()
                 val lines = listOf(
                     "آرڈرز کی آمدن (بک شدہ کام)" to revenue,
                     "نقد / رقم وصول ہوئی" to cash,
                     "کاروباری اخراجات" to exp,
-                    "خالص نقد (وصولی − اخراجات)" to (cash - exp),
+                    "کاریگروں کو ادائیگی" to wages,
+                    "خالص نقد (وصولی − اخراجات − کاریگر)" to (cash - exp - wages),
                     "کل بقایا (آج تک، تمام کسٹمرز)" to outstanding,
                 )
                 ReportTable(kind.title, sub(true), listOf("مد", "رقم"), lines.map { listOf(it.first, m(it.second)) },
                     csvRows = lines.map { listOf(it.first, n(it.second)) })
+            }
+
+            ReportKind.WORKERS -> {
+                val wd = repo.workers.rawDao()
+                val jobs = wd.jobs(); val pays = wd.payments()
+                val rowsW = repo.workers.rowsSync(true).filter { r -> r.worker.active || r.balance != 0L || r.pendingJobs > 0 }
+                val data = rowsW.map { r ->
+                    val doneIn = jobs.filter { it.workerId == r.worker.id && it.status == pk.tailormaster.pro.data.JobStatus.DONE && (it.doneAt ?: 0) in f.from..f.to }
+                    val paidIn = pays.filter { it.workerId == r.worker.id && !it.voided && it.date in f.from..f.to }.sumOf { it.amount }
+                    listOf<Any>(r.worker.name, doneIn.sumOf { it.qty }, doneIn.sumOf { it.amount }, paidIn, r.pendingJobs, r.balance)
+                }
+                ReportTable(kind.title, sub(true) + "\nبیلنس: مثبت = دکان کے ذمے مزدوری، منفی = کاریگر کے ذمے ایڈوانس",
+                    listOf("کاریگر", "مکمل کپڑے", "کمائی (اس عرصے)", "ادائیگی (اس عرصے)", "ابھی پاس کام", "کل بیلنس"),
+                    data.map { listOf(it[0] as String, Fmt.num(it[1] as Int), m(it[2] as Long), m(it[3] as Long), Fmt.num(it[4] as Int), m(it[5] as Long)) },
+                    listOf("کل", Fmt.num(data.sumOf { it[1] as Int }), m(data.sumOf { it[2] as Long }), m(data.sumOf { it[3] as Long }),
+                        Fmt.num(data.sumOf { it[4] as Int }), m(data.sumOf { it[5] as Long })),
+                    csvRows = data.map { listOf(it[0] as String, (it[1] as Int).toString(), n(it[2] as Long), n(it[3] as Long), (it[4] as Int).toString(), n(it[5] as Long)) },
+                    csvTotals = listOf("TOTAL", data.sumOf { it[1] as Int }.toString(), n(data.sumOf { it[2] as Long }), n(data.sumOf { it[3] as Long }),
+                        data.sumOf { it[4] as Int }.toString(), n(data.sumOf { it[5] as Long })))
+            }
+
+            ReportKind.WORKER_JOBS -> {
+                val wd = repo.workers.rawDao()
+                val names = wd.workers().associate { it.id to it.name }
+                val gName = f.garmentId?.let { garments[it]?.name }
+                val list = wd.jobs().filter { it.assignedAt in f.from..f.to && (gName == null || it.garmentName == gName) }.sortedBy { it.assignedAt }
+                val live = list.filter { it.status != pk.tailormaster.pro.data.JobStatus.CANCELLED }
+                ReportTable(kind.title, sub(true),
+                    listOf("تاریخ", "کاریگر", "آرڈر", "کپڑا", "کام", "تعداد", "مزدوری", "رقم", "حیثیت"),
+                    list.map { j -> listOf(Fmt.date(j.assignedAt), names[j.workerId] ?: "-", Fmt.orderNo(j.orderId), j.garmentName, j.task,
+                        Fmt.num(j.qty), m(j.wage), m(j.amount), pk.tailormaster.pro.data.JobStatus.label(j.status)) },
+                    listOf("کل: ${Fmt.num(live.size)}", "", "", "", "", Fmt.num(live.sumOf { it.qty }), "", m(live.sumOf { it.amount }), ""),
+                    csvRows = list.map { j -> listOf(Dates.format(j.assignedAt, "yyyy-MM-dd"), names[j.workerId] ?: "-", "B-${j.orderId}", j.garmentName, j.task,
+                        j.qty.toString(), n(j.wage), n(j.amount), pk.tailormaster.pro.data.JobStatus.label(j.status)) },
+                    csvTotals = listOf("TOTAL", "", "", "", "", live.sumOf { it.qty }.toString(), "", n(live.sumOf { it.amount }), ""))
             }
 
             ReportKind.RATE_HISTORY -> {

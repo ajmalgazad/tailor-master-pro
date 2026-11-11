@@ -1,6 +1,7 @@
 package pk.tailormaster.pro.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -17,15 +18,20 @@ import androidx.room.RoomDatabase
         MeasurementProfile::class, CustomRate::class, RateHistory::class, ExtraService::class,
         Order::class, OrderItem::class, StatusLog::class, Txn::class, Delivery::class,
         Expense::class, PrintLog::class, AuditLog::class,
+        // v2: kaarigar (workers)
+        Worker::class, WorkJob::class, WorkerPayment::class,
     ],
     version = AppDatabase.VERSION,
     exportSchema = true,
+    // v1 -> v2 only adds new tables, so Room writes the migration itself (schemas/ holds both versions).
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): TailorDao
+    abstract fun workerDao(): WorkerDao
 
     companion object {
-        const val VERSION = 1
+        const val VERSION = 2
         const val NAME = "tailor_master.db"
 
         fun create(context: Context): AppDatabase =

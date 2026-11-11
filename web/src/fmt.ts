@@ -15,4 +15,6 @@ export const Fmt = {
   txnNo: (id: number) => Fmt.d(Codes.code('T', id, 5)),
   profileCode: (id: number) => Fmt.d(Codes.code('P', id, 4)),
   deliveryNo: (id: number) => Fmt.d(Codes.code('D', id, 5)),
+  workerCode: (id: number) => Fmt.d(Codes.code('K', id, 3)),
+  jobNo: (id: number) => Fmt.d(Codes.code('J', id, 5)),
 }

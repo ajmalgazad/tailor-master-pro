@@ -3,6 +3,7 @@ import { Dates } from './calc'
 import { Q, R, encodeValues, newDraft, newDraftItem } from './repo'
 import { store } from './store'
 import type { Garment } from './types'
+import { WR } from './workers'
 
 export async function addSample() {
   const gs = Q.garments()
@@ -27,6 +28,7 @@ export async function addSample() {
     newDraftItem({ garmentId: tr.id, garmentName: tr.name, memberId: father, memberName: 'عبدالرشید', qty: 1, rate: tr.defaultRate, profileId: p4 })],
     charges: [{ name: 'کڑھائی', amount: 50000 }], discountInput: 200, advance: 200000 })
   await R.setOrderStatus(o1, 'STITCHING', true, 'نمونہ')
+  await WR.addSample(o1)
   await R.saveOrder({ ...newDraft(c2, self2.id), bookingDate: Dates.addDays(now, -10), deliveryDate: Dates.addDays(now, -2), urgent: true,
     items: [newDraftItem({ garmentId: fr.id, garmentName: fr.name, memberId: self2.id, memberName: self2.name, qty: 1, rate: fr.defaultRate, profileId: p5 })],
     charges: [{ name: 'ارجنٹ سلائی', amount: 50000 }], discountIsPercent: true, discountInput: 5, advance: 100000 })
@@ -39,6 +41,7 @@ export async function removeSample() {
   await store.tx(t => {
     const ids = new Set(t.list('customers').filter(c => c.sample).map(c => c.id))
     const orderIds = new Set(t.list('orders').filter(o => ids.has(o.customerId)).map(o => o.id))
+    WR.removeSampleInTx(t, orderIds)
     t.list('items').filter(x => orderIds.has(x.orderId)).forEach(x => t.del('items', x))
     t.list('statusLogs').filter(x => orderIds.has(x.orderId)).forEach(x => t.del('statusLogs', x))
     t.list('deliveries').filter(x => orderIds.has(x.orderId)).forEach(x => t.del('deliveries', x))

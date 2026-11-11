@@ -55,11 +55,12 @@ fun HomeScreen() {
         MenuItem(7, "نئی بکنگ", Color(0xFF2E7D32)) { Screen.Booking() },
         MenuItem(8, "آرڈر مینجمنٹ", Color(0xFF283593)) { Screen.Orders() },
         MenuItem(9, "ڈیلیوری مینجمنٹ", Color(0xFF00695C)) { Screen.Deliveries },
-        MenuItem(10, "پیمنٹ اور کھاتہ", Color(0xFFAD1457)) { Screen.Payments() },
-        MenuItem(11, "اخراجات", Color(0xFFC62828)) { Screen.Expenses },
-        MenuItem(12, "رسید پرنٹنگ", Color(0xFF37474F)) { Screen.PrintCenter },
-        MenuItem(13, "رپورٹس", Color(0xFF4527A0)) { Screen.ReportsHome },
-        MenuItem(14, "بیک اپ اور سیٹنگز", Color(0xFF455A64)) { Screen.Settings },
+        MenuItem(10, "کاریگر", Color(0xFF6D4C41)) { Screen.Workers },
+        MenuItem(11, "پیمنٹ اور کھاتہ", Color(0xFFAD1457)) { Screen.Payments() },
+        MenuItem(12, "اخراجات", Color(0xFFC62828)) { Screen.Expenses },
+        MenuItem(13, "رسید پرنٹنگ", Color(0xFF37474F)) { Screen.PrintCenter },
+        MenuItem(14, "رپورٹس", Color(0xFF4527A0)) { Screen.ReportsHome },
+        MenuItem(15, "بیک اپ اور سیٹنگز", Color(0xFF455A64)) { Screen.Settings },
     )
 
     val syncStatus = LocalSync.current?.status?.collectAsState()?.value

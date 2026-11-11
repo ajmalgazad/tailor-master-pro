@@ -102,6 +102,9 @@ private fun ScreenHost(s: Screen) {
         Screen.AuditLog -> AuditLogScreen()
         Screen.Merge -> MergeScreen()
         Screen.Cloud -> CloudScreen()
+        Screen.Workers -> WorkersScreen()
+        is Screen.WorkerEdit -> WorkerEditScreen(s.id)
+        is Screen.WorkerDetail -> WorkerDetailScreen(s.id, s.tab)
     }
 }
 

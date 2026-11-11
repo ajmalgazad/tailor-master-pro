@@ -361,6 +361,9 @@ object ReceiptKind {
     const val LEDGER = "LEDGER"
     const val CUSTOMER = "CUSTOMER"
     const val TEST = "TEST"
+    const val WORKER_SLIP = "WORKER_SLIP"
+    const val WORKER_PAYMENT = "WORKER_PAYMENT"
+    const val WORKER_LEDGER = "WORKER_LEDGER"
     fun label(k: String) = when (k) {
         BOOKING -> "بکنگ رسید"
         MEASUREMENT -> "ناپ کی پرچی"
@@ -369,6 +372,9 @@ object ReceiptKind {
         LEDGER -> "کھاتہ اسٹیٹمنٹ"
         CUSTOMER -> "کسٹمر معلومات"
         TEST -> "ٹیسٹ پرنٹ"
+        WORKER_SLIP -> "کاریگر کی پرچی"
+        WORKER_PAYMENT -> "کاریگر ادائیگی کی پرچی"
+        WORKER_LEDGER -> "کاریگر کا حساب"
         else -> k
     }
 }

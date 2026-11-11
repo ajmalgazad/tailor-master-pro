@@ -20,32 +20,36 @@ class SyncTable<T : Any>(
     val table: String,
     val ser: KSerializer<T>,
     val idOf: (T) -> Long,
-    val upsert: (TailorDao, T) -> Unit,
+    val upsert: (AppDatabase, T) -> Unit,
 ) {
     fun toJson(x: T): JsonObject = AppJson.encodeToJsonElement(ser, x).jsonObject
     fun fromJson(o: JsonObject): T = AppJson.decodeFromJsonElement(ser, o)
 }
 
 object SyncSchema {
-    val customers = SyncTable("customers", "customers", Customer.serializer(), { it.id }, { d, x -> d.upsertCustomer(x) })
-    val members = SyncTable("members", "family_members", FamilyMember.serializer(), { it.id }, { d, x -> d.upsertFamilyMember(x) })
-    val garments = SyncTable("garments", "garments", Garment.serializer(), { it.id }, { d, x -> d.upsertGarment(x) })
-    val fields = SyncTable("fields", "measurement_fields", MeasurementField.serializer(), { it.id }, { d, x -> d.upsertMeasurementField(x) })
-    val profiles = SyncTable("profiles", "measurement_profiles", MeasurementProfile.serializer(), { it.id }, { d, x -> d.upsertMeasurementProfile(x) })
-    val customRates = SyncTable("customRates", "custom_rates", CustomRate.serializer(), { it.id }, { d, x -> d.upsertCustomRate(x) })
-    val rateHistory = SyncTable("rateHistory", "rate_history", RateHistory.serializer(), { it.id }, { d, x -> d.upsertRateHistory(x) })
-    val services = SyncTable("services", "services", ExtraService.serializer(), { it.id }, { d, x -> d.upsertExtraService(x) })
-    val orders = SyncTable("orders", "orders", Order.serializer(), { it.id }, { d, x -> d.upsertOrder(x) })
-    val items = SyncTable("items", "order_items", OrderItem.serializer(), { it.id }, { d, x -> d.upsertOrderItem(x) })
-    val statusLogs = SyncTable("statusLogs", "status_log", StatusLog.serializer(), { it.id }, { d, x -> d.upsertStatusLog(x) })
-    val txns = SyncTable("txns", "txns", Txn.serializer(), { it.id }, { d, x -> d.upsertTxn(x) })
-    val deliveries = SyncTable("deliveries", "deliveries", Delivery.serializer(), { it.id }, { d, x -> d.upsertDelivery(x) })
-    val expenses = SyncTable("expenses", "expenses", Expense.serializer(), { it.id }, { d, x -> d.upsertExpense(x) })
-    val printLogs = SyncTable("printLogs", "print_log", PrintLog.serializer(), { it.id }, { d, x -> d.upsertPrintLog(x) })
-    val audits = SyncTable("audits", "audit_log", AuditLog.serializer(), { it.id }, { d, x -> d.upsertAuditLog(x) })
+    val customers = SyncTable("customers", "customers", Customer.serializer(), { it.id }, { d, x -> d.dao().upsertCustomer(x) })
+    val members = SyncTable("members", "family_members", FamilyMember.serializer(), { it.id }, { d, x -> d.dao().upsertFamilyMember(x) })
+    val garments = SyncTable("garments", "garments", Garment.serializer(), { it.id }, { d, x -> d.dao().upsertGarment(x) })
+    val fields = SyncTable("fields", "measurement_fields", MeasurementField.serializer(), { it.id }, { d, x -> d.dao().upsertMeasurementField(x) })
+    val profiles = SyncTable("profiles", "measurement_profiles", MeasurementProfile.serializer(), { it.id }, { d, x -> d.dao().upsertMeasurementProfile(x) })
+    val customRates = SyncTable("customRates", "custom_rates", CustomRate.serializer(), { it.id }, { d, x -> d.dao().upsertCustomRate(x) })
+    val rateHistory = SyncTable("rateHistory", "rate_history", RateHistory.serializer(), { it.id }, { d, x -> d.dao().upsertRateHistory(x) })
+    val services = SyncTable("services", "services", ExtraService.serializer(), { it.id }, { d, x -> d.dao().upsertExtraService(x) })
+    val orders = SyncTable("orders", "orders", Order.serializer(), { it.id }, { d, x -> d.dao().upsertOrder(x) })
+    val items = SyncTable("items", "order_items", OrderItem.serializer(), { it.id }, { d, x -> d.dao().upsertOrderItem(x) })
+    val statusLogs = SyncTable("statusLogs", "status_log", StatusLog.serializer(), { it.id }, { d, x -> d.dao().upsertStatusLog(x) })
+    val txns = SyncTable("txns", "txns", Txn.serializer(), { it.id }, { d, x -> d.dao().upsertTxn(x) })
+    val deliveries = SyncTable("deliveries", "deliveries", Delivery.serializer(), { it.id }, { d, x -> d.dao().upsertDelivery(x) })
+    val expenses = SyncTable("expenses", "expenses", Expense.serializer(), { it.id }, { d, x -> d.dao().upsertExpense(x) })
+    val printLogs = SyncTable("printLogs", "print_log", PrintLog.serializer(), { it.id }, { d, x -> d.dao().upsertPrintLog(x) })
+    val audits = SyncTable("audits", "audit_log", AuditLog.serializer(), { it.id }, { d, x -> d.dao().upsertAuditLog(x) })
+
+    val workers = SyncTable("workers", "workers", Worker.serializer(), { it.id }, { d, x -> d.workerDao().upsertWorker(x) })
+    val workJobs = SyncTable("workJobs", "work_jobs", WorkJob.serializer(), { it.id }, { d, x -> d.workerDao().upsertJob(x) })
+    val workerPayments = SyncTable("workerPayments", "worker_payments", WorkerPayment.serializer(), { it.id }, { d, x -> d.workerDao().upsertPayment(x) })
 
     val all: List<SyncTable<*>> = listOf(customers, members, garments, fields, profiles, customRates, rateHistory, services,
-        orders, items, statusLogs, txns, deliveries, expenses, printLogs, audits)
+        orders, items, statusLogs, txns, deliveries, expenses, printLogs, audits, workers, workJobs, workerPayments)
 
     fun byColl(c: String): SyncTable<*>? = all.firstOrNull { it.coll == c }
 

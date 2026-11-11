@@ -93,7 +93,9 @@ jobs:
       - name: Build app and instrumented tests
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest
+          ./gradlew --no-daemon assembleDebug
+          # second run: the androidTest assets need the database schema written by the first
+          ./gradlew --no-daemon assembleDebugAndroidTest
 
       - name: Build web app for the phone <-> web sync test
         run: |

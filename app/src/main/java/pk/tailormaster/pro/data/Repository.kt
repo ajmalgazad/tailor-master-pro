@@ -139,6 +139,9 @@ class Repository(private val db: AppDatabase, val settings: SettingsStore) {
 
     init { DeviceIds.device = settings.value.deviceNo }
 
+    /** Kaarigar (workers): jobs, wages and payments. */
+    val workers = WorkerRepo(this, db)
+
     private val _version = MutableStateFlow(0L)
     /** Increments after every write so screens know to reload. */
     val version: StateFlow<Long> = _version
